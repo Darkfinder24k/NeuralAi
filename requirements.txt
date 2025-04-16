@@ -1,0 +1,11 @@
+streamlit
+google-generativeai
+langchain-community
+ollama
+requests
+beautifulsoup4
+pandas
+fpdf2
+pyttsx3
+SpeechRecognition
+openpyxl
