@@ -1,5 +1,6 @@
 # Firebox AI: Ultimate Version with ALL Features + Excel Storage, Persistent Login, and Footer
-
+import api
+from api import gemini_api
 import streamlit as st
 import google.generativeai as genai
 import requests
@@ -13,7 +14,7 @@ import pyttsx3
 import speech_recognition as sr
 
 # === CONFIG ===
-genai.configure(api_key="AIzaSyAbXv94hwzhbrxhBYq-zS58LkhKZQ6cjMg")  # Replace with your actual API key
+genai.configure(api_key=gemini_api)  # Replace with your actual API key
 history_file = "firebox_chat_history.json"
 login_file = "firebox_users.xlsx"
 input_log_file = "firebox_inputs.xlsx"
