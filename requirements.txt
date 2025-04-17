@@ -1,8 +1,8 @@
 streamlit
-stability-sdk
 moviepy
+stability-sdk
 pyttsx3
-speechrecognition
+SpeechRecognition
 fpdf
 pandas
 requests
