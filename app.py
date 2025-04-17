@@ -8,6 +8,8 @@ import datetime
 from fpdf import FPDF
 import pyttsx3
 import speech_recognition as sr
+import pandas as pd
+import os
 import api
 from api import gemini_api
 
@@ -26,6 +28,20 @@ def call_firebox_gemini(prompt):
     except Exception as e:
         st.error(f"❌ Gemini API error: {e}")
         return "❌ Gemini API error. Please try again."
+
+# --- Save Input to Excel ---
+def save_input_to_excel(user_input):
+    file_name = "firebox_inputs.xlsx"
+    new_data = {"Timestamp": [datetime.datetime.now()], "User Input": [user_input]}
+    new_df = pd.DataFrame(new_data)
+
+    if os.path.exists(file_name):
+        existing_df = pd.read_excel(file_name)
+        updated_df = pd.concat([existing_df, new_df], ignore_index=True)
+    else:
+        updated_df = new_df
+
+    updated_df.to_excel(file_name, index=False)
 
 # --- Web Search (optional feature) ---
 def search_web(query):
@@ -71,7 +87,6 @@ def export_to_pdf(content):
 
 # === STREAMLIT APP ===
 st.set_page_config(page_title="Firebox AI", page_icon="🔥", layout="wide")
-
 st.title("🔥 Firebox AI – Pure Mode")
 
 # Input Section
@@ -81,6 +96,7 @@ user_input = st.text_input("Enter your question")
 if user_input:
     with st.spinner("Thinking..."):
         response = call_firebox_gemini(user_input)
+        save_input_to_excel(user_input)  # ✅ Save the input to Excel
         st.success("✅ Response Generated!")
         st.markdown(f"**🧠 Firebox**: {response}")
         if st.button("🔊 Speak"):
