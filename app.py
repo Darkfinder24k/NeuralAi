@@ -1,119 +1,86 @@
+# Firebox AI: Cleanest Version – No Login, No History, No Tracking
+
 import streamlit as st
-import os
-from PIL import Image
-import io
-from stability_sdk import client
-import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
-import moviepy.editor as mp
-import pyttsx3
-import speech_recognition as sr
+import google.generativeai as genai
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
 import datetime
+from fpdf import FPDF
+import pyttsx3
+import speech_recognition as sr
+import pandas as pd
+import os
+import io
+from PIL import Image
+import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
+from stability_sdk import client
 
+import api
 from api import gemini_api, stability_api
 
-# === Image Generation with Stability API ===
-def generate_image_stability(prompt):
-    stability_api_client = client.StabilityInference(
-        key=stability_api,
-        verbose=True,
-    )
-    answers = stability_api_client.generate(prompt=prompt, steps=30, width=512, height=512)
-    images = []
-    for resp in answers:
-        for artifact in resp.artifacts:
-            if artifact.finish_reason == generation.FILTER:
-                st.warning("⚠️ Prompt was filtered for safety.")
-                return None
-            if artifact.type == generation.ARTIFACT_IMAGE:
-                img = Image.open(io.BytesIO(artifact.binary))
-                images.append(img)
-    return images
+# === CONFIG ===
+genai.configure(api_key=gemini_api)
 
-# === Generate Video from Multiple Images ===
-def generate_video_from_images(images, video_filename="generated_video.mp4", fps=24):
-    # Save each image to disk temporarily
-    image_files = []
-    for i, img in enumerate(images):
-        img_filename = f"temp_image_{i}.png"
-        img.save(img_filename)
-        image_files.append(img_filename)
+# --- Gemini Interaction ---
+def call_firebox_gemini(prompt):
+    model = genai.GenerativeModel("gemini-2.0-flash")
+    try:
+        response = model.generate_content(f"""You are Firebox, a helpful AI assistant. 
+        Respond briefly, clearly, and positively to:
+        {prompt}
+        """)
+        return response.text
+    except Exception as e:
+        st.error(f"❌ Gemini API error: {e}")
+        return "❌ Gemini API error. Please try again."
 
-    # Use MoviePy to create video from images
-    clips = [mp.ImageClip(img).set_duration(0.5) for img in image_files]  # 0.5 seconds per frame
-    video = mp.concatenate_videoclips(clips, method="compose")
-    
-    # Write the video to a file
-    video.write_videofile(video_filename, fps=fps)
+# --- Save Input to Excel ---
+def save_input_to_excel(user_input):
+    file_name = "firebox_inputs.xlsx"
+    new_data = {"Timestamp": [datetime.datetime.now()], "User Input": [user_input]}
+    new_df = pd.DataFrame(new_data)
 
-    # Cleanup image files
-    for img_file in image_files:
-        os.remove(img_file)
-
-    return video_filename
-
-# === Generate Video from Prompt using AI ===
-def generate_video_from_prompt(prompt):
-    # Adjust the prompt to generate sequential images (e.g., "frame 1", "frame 2", ...)
-    images = []
-    for i in range(5):  # Generate 5 frames to simulate a video (can be adjusted)
-        frame_prompt = f"{prompt} frame {i+1}"  # Slightly change the prompt for each frame
-        image = generate_image_stability(frame_prompt)
-        if image:
-            images.extend(image)  # Add the generated images to the list
-    if images:
-        video_filename = generate_video_from_images(images)
-        return video_filename
+    if os.path.exists(file_name):
+        existing_df = pd.read_excel(file_name)
+        updated_df = pd.concat([existing_df, new_df], ignore_index=True)
     else:
-        return None
+        updated_df = new_df
 
-# === Streamlit UI ===
-st.set_page_config(page_title="Firebox AI", page_icon="🔥", layout="wide")
-st.title("🔥 Firebox AI – Pure Mode")
+    updated_df.to_excel(file_name, index=False)
 
-# Input Section
-st.markdown("Ask me anything 👇")
-user_input = st.text_input("Enter your question")
-use_web = st.checkbox("🌐 Enhance with Web Search")
-image_prompt = st.text_input("🎨 Want to generate an image? Enter a prompt")
-video_prompt = st.text_input("🎬 Want to generate a video? Enter a prompt")
+# --- Web Search ---
+def search_web(query):
+    headers = {"User-Agent": "Mozilla/5.0"}
+    try:
+        url = f"https://www.google.com/search?q={query}"
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, 'html.parser')
+        snippets = soup.select('div.BNeawe.s3v9rd.AP7Wnd')
+        results = [s.get_text() for s in snippets[:3]]
+        return "\n\n🌐 Web Search Results:\n" + "\n".join(results) if results else "No web results found."
+    except Exception as e:
+        return f"❌ Web search failed: {e}"
 
-# Text Answer
-if user_input:
-    with st.spinner("Thinking..."):
-        gemini_response = "Response from Gemini (your custom API call)"
-        web_results = "Web results if any"
-        full_response = gemini_response + ("\n\n" + web_results if web_results else "")
-        st.success("✅ Response Generated!")
-        st.markdown(f"**🧠 Firebox**: {full_response}")
+# --- Text-to-Speech ---
+def speak_text(text):
+    engine = pyttsx3.init()
+    engine.say(text)
+    engine.runAndWait()
 
-        if st.button("🔊 Speak"):
-            pyttsx3.init().say(full_response)
-        if st.button("📄 Export as PDF"):
-            pdf_file = export_to_pdf(full_response)
-            st.success(f"PDF saved as {pdf_file}")
+# --- Speech Recognition ---
+def recognize_speech():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.info("🎤 Speak now...")
+        try:
+            audio = recognizer.listen(source)
+            return recognizer.recognize_google(audio)
+        except:
+            return "Sorry, I couldn't understand."
 
-# Image Generation Section
-if image_prompt:
-    with st.spinner("🎨 Generating images..."):
-        images = generate_image_stability(image_prompt)
-        if images:
-            st.image(images[0], caption="Generated by Firebox (Stable Diffusion)", use_container_width=True)
-
-# Video Generation Section
-if video_prompt:
-    with st.spinner("🎬 Generating video..."):
-        video_file = generate_video_from_prompt(video_prompt)
-        if video_file:
-            st.success(f"🎥 Video generated: {video_file}")
-            st.video(video_file)
-
-# === Supporting Functions ===
-# Export generated content to PDF
+# --- PDF Export ---
 def export_to_pdf(content):
-    from fpdf import FPDF
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
@@ -122,3 +89,59 @@ def export_to_pdf(content):
     file_name = f"Firebox_Response_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     pdf.output(file_name)
     return file_name
+
+# --- Image Generation with Stability AI ---
+def generate_image_stability(prompt):
+    stability_api_client = client.StabilityInference(
+        key=stability_api,
+        verbose=True,
+    )
+    answers = stability_api_client.generate(prompt=prompt, steps=30, width=512, height=512)
+    for resp in answers:
+        for artifact in resp.artifacts:
+            if artifact.finish_reason == generation.FILTER:
+                st.warning("⚠️ Prompt was filtered for safety.")
+                return None
+            if artifact.type == generation.ARTIFACT_IMAGE:
+                image = Image.open(io.BytesIO(artifact.binary))
+                return image
+    return None
+
+# === STREAMLIT APP ===
+st.set_page_config(page_title="Firebox AI", page_icon="🔥", layout="wide")
+st.title("🔥 Firebox AI – Pure Mode")
+
+# Input Section
+st.markdown("Ask me anything 👇")
+user_input = st.text_input("Enter your question")
+use_web = st.checkbox("🌐 Enhance with Web Search")
+image_prompt = st.text_input("🎨 Want to generate an image? Enter a prompt")
+
+# Text Answer
+if user_input:
+    with st.spinner("Thinking..."):
+        save_input_to_excel(user_input)
+        gemini_response = call_firebox_gemini(user_input)
+        web_results = search_web(user_input) if use_web else ""
+        full_response = gemini_response + ("\n\n" + web_results if web_results else "")
+        st.success("✅ Response Generated!")
+        st.markdown(f"**🧠 Firebox**: {full_response}")
+
+        if st.button("🔊 Speak"):
+            speak_text(full_response)
+        if st.button("📄 Export as PDF"):
+            pdf_file = export_to_pdf(full_response)
+            st.success(f"PDF saved as {pdf_file}")
+
+# Voice Input
+if st.button("🎙️ Speak Your Query"):
+    spoken_text = recognize_speech()
+    if spoken_text:
+        st.text_input("Spoken Input", value=spoken_text, key="spoken_input")
+
+# Image Generation
+if image_prompt:
+    with st.spinner("🎨 Generating image..."):
+        img = generate_image_stability(image_prompt)
+        if img:
+            st.image(img, caption="Generated by Firebox (Stable Diffusion)", use_container_width=True)
