@@ -9,3 +9,4 @@ beautifulsoup4
 openpyxl
 stability-sdk
 Pillow
+moviepy
