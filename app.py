@@ -31,13 +31,13 @@ CHAT_HISTORY_LENGTH = 5  # Number of recent interactions to keep in "memory"
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
 SMTP_USERNAME = "shivikush77@gmail.com"  # Your Gmail address
-SMTP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")  # Store securely as environment variable
+SMTP_PASSWORD = (password)  # Store securely as environment variable
 
 # === FUNCTIONS ===
 
 # --- Gemini Interaction ---
 def call_firebox_gemini(prompt):
-    model = genai.GenerativeModel("gemini-1.5-pro-latest")  # Use the latest model
+    model = genai.GenerativeModel("gemini-2.0-flash")  # Use the latest model
     try:
         response = model.generate_content(f"""You are Firebox, a helpful AI assistant. Your goal is to provide concise, accurate, and engaging responses to user queries.
 
