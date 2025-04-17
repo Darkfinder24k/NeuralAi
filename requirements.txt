@@ -1,11 +1,8 @@
 streamlit
-google-generativeai
-fpdf
+stability-sdk
+moviepy
 pyttsx3
-SpeechRecognition
+speechrecognition
+fpdf
 pandas
 requests
-beautifulsoup4
-openpyxl
-stability-sdk
-Pillow
