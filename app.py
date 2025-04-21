@@ -1,31 +1,18 @@
-# Firebox AI: Cleanest Version – No Login, No History, No Tracking
-
 import streamlit as st
 import google.generativeai as genai
 import requests
 from bs4 import BeautifulSoup
 import datetime
 from fpdf import FPDF
+import pyttsx3
+import speech_recognition as sr
 import pandas as pd
 import os
 import io
 from PIL import Image
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 from stability_sdk import client
-import platform
 
-# Conditional imports for voice modules
-enable_voice = platform.system() == "Windows"
-
-if enable_voice:
-    try:
-        import pyttsx3
-        import speech_recognition as sr
-    except ImportError:
-        enable_voice = False
-        st.warning("Voice modules not installed or unsupported on this system.")
-
-# Import your local API keys
 import api
 from api import gemini_api, stability_api
 
@@ -37,9 +24,9 @@ def call_firebox_gemini(prompt):
     model = genai.GenerativeModel("gemini-2.0-flash")
     try:
         response = model.generate_content(f"""You are Firebox, a helpful AI assistant. 
-        Respond briefly, clearly, and positively, use emojies to add feeling to:
+        Respond briefly, clearly, and positively to:
         {prompt}
-        , and always also try to give better response than the before answer""")
+        """)
         return response.text
     except Exception as e:
         st.error(f"❌ Gemini API error: {e}")
@@ -73,28 +60,33 @@ def search_web(query):
     except Exception as e:
         return f"❌ Web search failed: {e}"
 
-# --- Text-to-Speech ---
+# --- Text-to-Speech (Fixed) ---
 def speak_text(text):
-    if not enable_voice:
-        st.warning("Text-to-Speech is not supported on this platform.")
-        return
-    engine = pyttsx3.init()
-    engine.say(text)
-    engine.runAndWait()
+    try:
+        engine = pyttsx3.init()
+        engine.setProperty('rate', 170)  # Set speech rate
+        engine.setProperty('volume', 1)  # Set volume level
+        voices = engine.getProperty('voices')
+        engine.setProperty('voice', voices[0].id)  # Select the first available voice
+        engine.say(text)
+        engine.runAndWait()
+    except Exception as e:
+        print(f"Text-to-speech error: {e}")
 
-# --- Speech Recognition ---
+# --- Speech Recognition (Fixed) ---
 def recognize_speech():
-    if not enable_voice:
-        st.warning("Speech Recognition is not supported on this platform.")
-        return "Speech recognition is disabled."
     recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.info("🎤 Speak now...")
-        try:
+    try:
+        with sr.Microphone() as source:
+            print("🎤 Listening... Please speak.")
             audio = recognizer.listen(source)
-            return recognizer.recognize_google(audio)
-        except:
-            return "Sorry, I couldn't understand."
+        return recognizer.recognize_google(audio)
+    except sr.UnknownValueError:
+        return "Sorry, I couldn't understand your voice."
+    except sr.RequestError:
+        return "Speech Recognition service is unavailable."
+    except Exception as e:
+        return f"Speech recognition error: {e}"
 
 # --- PDF Export ---
 def export_to_pdf(content):
@@ -151,7 +143,7 @@ if user_input:
             st.success(f"PDF saved as {pdf_file}")
 
 # Voice Input
-if st.button("🎙️ Speak Your Query") and enable_voice:
+if st.button("🎙️ Speak Your Query"):
     spoken_text = recognize_speech()
     if spoken_text:
         st.text_input("Spoken Input", value=spoken_text, key="spoken_input")
