@@ -6,15 +6,26 @@ import requests
 from bs4 import BeautifulSoup
 import datetime
 from fpdf import FPDF
-import pyttsx3
-import speech_recognition as sr
 import pandas as pd
 import os
 import io
 from PIL import Image
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 from stability_sdk import client
+import platform
 
+# Conditional imports for voice modules
+enable_voice = platform.system() == "Windows"
+
+if enable_voice:
+    try:
+        import pyttsx3
+        import speech_recognition as sr
+    except ImportError:
+        enable_voice = False
+        st.warning("Voice modules not installed or unsupported on this system.")
+
+# Import your local API keys
 import api
 from api import gemini_api, stability_api
 
@@ -26,9 +37,9 @@ def call_firebox_gemini(prompt):
     model = genai.GenerativeModel("gemini-2.0-flash")
     try:
         response = model.generate_content(f"""You are Firebox, a helpful AI assistant. 
-        Respond briefly, clearly, and positively to:
+        Respond briefly, clearly, and positively, use emojies to add feeling to:
         {prompt}
-        """)
+        , and always also try to give better response than the before answer""")
         return response.text
     except Exception as e:
         st.error(f"❌ Gemini API error: {e}")
@@ -64,12 +75,18 @@ def search_web(query):
 
 # --- Text-to-Speech ---
 def speak_text(text):
+    if not enable_voice:
+        st.warning("Text-to-Speech is not supported on this platform.")
+        return
     engine = pyttsx3.init()
     engine.say(text)
     engine.runAndWait()
 
 # --- Speech Recognition ---
 def recognize_speech():
+    if not enable_voice:
+        st.warning("Speech Recognition is not supported on this platform.")
+        return "Speech recognition is disabled."
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
         st.info("🎤 Speak now...")
@@ -134,7 +151,7 @@ if user_input:
             st.success(f"PDF saved as {pdf_file}")
 
 # Voice Input
-if st.button("🎙️ Speak Your Query"):
+if st.button("🎙️ Speak Your Query") and enable_voice:
     spoken_text = recognize_speech()
     if spoken_text:
         st.text_input("Spoken Input", value=spoken_text, key="spoken_input")
