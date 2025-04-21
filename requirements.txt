@@ -1,16 +1,12 @@
-# Core requirements
 streamlit
 google-generativeai
 requests
 beautifulsoup4
 fpdf
+pyttsx3
+SpeechRecognition
+pyaudio
 pandas
 Pillow
 stability-sdk
 openpyxl
-pyaudio
-
-# Voice features (platform-specific)
-pyttsx3 ; platform_system != "Linux"
-SpeechRecognition ; platform_system != "Linux"
-pyaudio ; platform_system == "Windows"
