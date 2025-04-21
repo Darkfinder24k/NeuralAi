@@ -9,3 +9,6 @@ pandas
 Pillow
 stability-sdk
 openpyxl
+pyttsx3 ; platform_system != "Linux"
+SpeechRecognition ; platform_system != "Linux"
+pyaudio ; platform_system == "Windows"
