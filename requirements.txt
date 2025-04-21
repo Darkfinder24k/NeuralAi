@@ -8,3 +8,4 @@ SpeechRecognition
 pandas
 Pillow
 stability-sdk
+openpyxl
