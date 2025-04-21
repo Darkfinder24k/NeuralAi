@@ -10,3 +10,4 @@ Pillow
 stability-sdk
 openpyxl
 pyaudio
+PyAudio
