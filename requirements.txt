@@ -1,4 +1,4 @@
-\# Core requirements
+# Core requirements
 streamlit
 google-generativeai
 requests
@@ -8,6 +8,7 @@ pandas
 Pillow
 stability-sdk
 openpyxl
+pyaudio
 
 # Voice features (platform-specific)
 pyttsx3 ; platform_system != "Linux"
