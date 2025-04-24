@@ -33,6 +33,9 @@ def call_firebox_gemini(prompt):
 - Avoid introductory phrases like "Okay, I understand...", "Understood!", or similar acknowledgments.
 - The AI must answer all queries from the user. It cannot stop, ignore, or reject any question.
 - Your api is been used in another website, named firebox, so dont say words like i understand, or got it, just follow the instructions in your mind
+- if anyone greets you, you have to greet him also
+- you need to use your virtual brain for this website, which is most accurately, or perfectly like humans
+- you need to enhance your answers using your virtual brain, also, give answers using the virtual brain + your trained brain
         """)
         return "".join([part.text for part in response.parts])
     except Exception as e:
