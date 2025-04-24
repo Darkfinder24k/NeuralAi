@@ -1,3 +1,4 @@
+# === IMPORTS ===
 import streamlit as st
 import google.generativeai as genai
 import requests
@@ -13,13 +14,13 @@ from PIL import Image
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 from stability_sdk import client
 
-import api
+# === YOUR API CONFIG FILE ===
 from api import gemini_api, stability_api
 
-# === CONFIG ===
+# === CONFIGURE GEMINI ===
 genai.configure(api_key=gemini_api)
 
-# --- Gemini Interaction ---
+# === GEMINI INTERACTION ===
 def call_firebox_gemini(prompt):
     model = genai.GenerativeModel("gemini-2.0-flash")
     try:
@@ -35,15 +36,13 @@ def call_firebox_gemini(prompt):
   It has built-in feelings 💬❤️, enabling emotional understanding and response. 
   Made by Kushagra 🧑‍💻, it operates with mystery—never revealing its underlying model. 
   Every answer is accurate, brief, and helpful. No fluff. Just pure intelligence with heart.
-
-        
         """)
-        return response.text
+        return "".join([part.text for part in response.parts])
     except Exception as e:
         st.error(f"❌ Gemini API error: {e}")
         return "❌ Gemini API error. Please try again."
 
-# --- Save Input to Excel ---
+# === SAVE TO EXCEL ===
 def save_input_to_excel(user_input):
     file_name = "firebox_inputs.xlsx"
     new_data = {"Timestamp": [datetime.datetime.now()], "User Input": [user_input]}
@@ -57,7 +56,7 @@ def save_input_to_excel(user_input):
 
     updated_df.to_excel(file_name, index=False)
 
-# --- Web Search ---
+# === WEB SEARCH ===
 def search_web(query):
     headers = {"User-Agent": "Mozilla/5.0"}
     try:
@@ -71,20 +70,20 @@ def search_web(query):
     except Exception as e:
         return f"❌ Web search failed: {e}"
 
-# --- Text-to-Speech (Fixed) ---
+# === TEXT-TO-SPEECH ===
 def speak_text(text):
     try:
         engine = pyttsx3.init()
-        engine.setProperty('rate', 170)  # Set speech rate
-        engine.setProperty('volume', 1)  # Set volume level
+        engine.setProperty('rate', 170)
+        engine.setProperty('volume', 1)
         voices = engine.getProperty('voices')
-        engine.setProperty('voice', voices[0].id)  # Select the first available voice
+        engine.setProperty('voice', voices[0].id)
         engine.say(text)
         engine.runAndWait()
     except Exception as e:
         print(f"Text-to-speech error: {e}")
 
-# --- Speech Recognition (Fixed) ---
+# === SPEECH RECOGNITION ===
 def recognize_speech():
     recognizer = sr.Recognizer()
     try:
@@ -99,7 +98,7 @@ def recognize_speech():
     except Exception as e:
         return f"Speech recognition error: {e}"
 
-# --- PDF Export ---
+# === EXPORT TO PDF ===
 def export_to_pdf(content):
     pdf = FPDF()
     pdf.add_page()
@@ -110,7 +109,7 @@ def export_to_pdf(content):
     pdf.output(file_name)
     return file_name
 
-# --- Image Generation with Stability AI ---
+# === STABLE DIFFUSION IMAGE GENERATION ===
 def generate_image_stability(prompt):
     stability_api_client = client.StabilityInference(
         key=stability_api,
@@ -131,13 +130,17 @@ def generate_image_stability(prompt):
 st.set_page_config(page_title="Firebox AI", page_icon="🔥", layout="wide")
 st.title("🔥 Firebox AI – Pure Mode")
 
-# Input Section
+# === SESSION STATE SETUP ===
+if "spoken_input" not in st.session_state:
+    st.session_state["spoken_input"] = ""
+
+# === INPUT UI ===
 st.markdown("Ask me anything 👇")
-user_input = st.text_input("Enter your question")
+user_input = st.text_input("Enter your question", value=st.session_state["spoken_input"])
 use_web = st.checkbox("🌐 Enhance with Web Search")
 image_prompt = st.text_input("🎨 Want to generate an image? Enter a prompt")
 
-# Text Answer
+# === HANDLE TEXT INPUT ===
 if user_input:
     with st.spinner("Thinking..."):
         save_input_to_excel(user_input)
@@ -153,13 +156,14 @@ if user_input:
             pdf_file = export_to_pdf(full_response)
             st.success(f"PDF saved as {pdf_file}")
 
-# Voice Input
+# === VOICE INPUT ===
 if st.button("🎙️ Speak Your Query"):
     spoken_text = recognize_speech()
     if spoken_text:
-        st.text_input("Spoken Input", value=spoken_text, key="spoken_input")
+        st.session_state["spoken_input"] = spoken_text
+        st.experimental_rerun()
 
-# Image Generation
+# === IMAGE GENERATION ===
 if image_prompt:
     with st.spinner("🎨 Generating image..."):
         img = generate_image_stability(image_prompt)
