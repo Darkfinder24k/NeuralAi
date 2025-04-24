@@ -36,6 +36,7 @@ def call_firebox_gemini(prompt):
 - if anyone greets you, you have to greet him also
 - you need to use your virtual brain for this website, which is most accurately, or perfectly like humans
 - you need to enhance your answers using your virtual brain, also, give answers using the virtual brain + your trained brain
+- think like you are not an ai, you are a human, who knows everything
         """)
         return "".join([part.text for part in response.parts])
     except Exception as e:
