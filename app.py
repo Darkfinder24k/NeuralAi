@@ -51,7 +51,7 @@ def call_firebox_gemini(prompt):
 
 # === SAVE TO EXCEL ===
 def save_input_to_excel(user_input):
-    file_name = "firebox_inputs.xlsx"
+    file_name = "NeuralAi_Inputs.xlsx"
     new_data = {"Timestamp": [datetime.datetime.now()], "User Input": [user_input]}
     new_df = pd.DataFrame(new_data)
 
