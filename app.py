@@ -1,13 +1,11 @@
-# === IMPORTS ===
 import streamlit as st
 import google.generativeai as genai
 import requests
 from bs4 import BeautifulSoup
 import datetime
-from fpdf import FPDF
 import pyttsx3
 import speech_recognition as sr
-import pandas as pd
+import csv
 import os
 import io
 from PIL import Image
@@ -49,19 +47,15 @@ def call_firebox_gemini(prompt):
         st.error(f"❌ Gemini API error: {e}")
         return "❌ Gemini API error. Please try again."
 
-# === SAVE TO EXCEL ===
-def save_input_to_excel(user_input):
-    file_name = "NeuralAi_Inputs.xlsx"
-    new_data = {"Timestamp": [datetime.datetime.now()], "User Input": [user_input]}
-    new_df = pd.DataFrame(new_data)
-
-    if os.path.exists(file_name):
-        existing_df = pd.read_excel(file_name)
-        updated_df = pd.concat([existing_df, new_df], ignore_index=True)
-    else:
-        updated_df = new_df
-
-    updated_df.to_excel(file_name, index=False)
+# === SAVE TO CSV FILE ===
+def save_input_to_csv(user_input):
+    file_name = "firebox_user_inputs.csv"
+    file_exists = os.path.isfile(file_name)
+    with open(file_name, mode="a", newline="", encoding="utf-8") as file:
+        writer = csv.writer(file)
+        if not file_exists:
+            writer.writerow(["Timestamp", "User Input"])
+        writer.writerow([datetime.datetime.now().isoformat(), user_input])
 
 # === WEB SEARCH ===
 def search_web(query):
@@ -105,17 +99,6 @@ def recognize_speech():
     except Exception as e:
         return f"Speech recognition error: {e}"
 
-# === EXPORT TO PDF ===
-def export_to_pdf(content):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    for line in content.split('\n'):
-        pdf.cell(200, 10, txt=line, ln=True)
-    file_name = f"Firebox_Response_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-    pdf.output(file_name)
-    return file_name
-
 # === STABLE DIFFUSION IMAGE GENERATION ===
 def generate_image_stability(prompt):
     stability_api_client = client.StabilityInference(
@@ -150,21 +133,18 @@ image_prompt = st.text_input("🎨 Want to generate an image? Enter a prompt")
 # === HANDLE TEXT INPUT ===
 if user_input:
     with st.spinner("Thinking..."):
-        save_input_to_excel(user_input)
+        save_input_to_csv(user_input)
         gemini_response = call_firebox_gemini(user_input)
         web_results = search_web(user_input) if use_web else ""
         full_response = gemini_response + ("\n\n" + web_results if web_results else "")
         st.success("✅ Response Generated!")
-        st.markdown(f"**🧠 Firebox**: {full_response}")
+        st.markdown(f"**🧐 Firebox**: {full_response}")
 
         if st.button("🔊 Speak"):
             speak_text(full_response)
-        if st.button("📄 Export as PDF"):
-            pdf_file = export_to_pdf(full_response)
-            st.success(f"PDF saved as {pdf_file}")
 
 # === VOICE INPUT ===
-if st.button("🎙️ Speak Your Query"):
+if st.button("🎧 Speak Your Query"):
     spoken_text = recognize_speech()
     if spoken_text:
         st.session_state["spoken_input"] = spoken_text
