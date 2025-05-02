@@ -1,6 +1,6 @@
+import requests
 import streamlit as st
 import google.generativeai as genai
-import requests
 from bs4 import BeautifulSoup
 import datetime
 from fpdf import FPDF
@@ -17,6 +17,29 @@ from api import gemini_api, stability_api
 
 # === CONFIGURE GEMINI ===
 genai.configure(api_key=gemini_api)
+
+# === Llama AI INTEGRATION ===
+def llama_ai_response(prompt):
+    url = "https://api.aimlapi.com/v1/chat/completions"
+    headers = {
+        "Authorization": "Bearer e5b7931e7e214e1eb43ba7182d7a2176",  # Ensure this is the correct API token
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",  # Ensure this model exists in AIMLAPI
+        "messages": [{"role": "user", "content": prompt}]
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+    # Check the response status code
+    if response.status_code == 200:
+        try:
+            response_data = response.json()
+            return response_data['choices'][0]['message']['content']
+        except ValueError:
+            return "Failed to decode JSON response."
+    else:
+        return f"Error: {response.status_code}"
 
 # === GEMINI INTERACTION ===
 def call_firebox_gemini(prompt):
@@ -42,10 +65,6 @@ AI Behavior Instructions:
     except Exception as e:
         st.error(f"❌ Gemini API error: {e}")
         return "❌ Gemini API error. Please try again."
-
-# === DATABASE LOGGING TO GITHUB (INSTRUCTIONAL) ===
-# 💡 Instead of Excel, you can push user inputs to a GitHub-hosted CSV or JSON using PyGitHub
-# Optional future enhancement: create a GitHub Actions workflow that appends to a data file.
 
 # === WEB SEARCH ===
 def search_web(query):
@@ -135,8 +154,13 @@ image_prompt = st.text_input("🎨 Want to generate an image? Enter a prompt")
 if user_input:
     with st.spinner("Thinking..."):
         gemini_response = call_firebox_gemini(user_input)
+        llama_response = llama_ai_response(user_input)
+        
+        # Mixing responses from Gemini and Llama AI
+        full_response = f"**Gemini Response**:\n{gemini_response}\n\n**Llama AI Response**:\n{llama_response}"
         web_results = search_web(user_input) if use_web else ""
-        full_response = gemini_response + ("\n\n" + web_results if web_results else "")
+        full_response += ("\n\n" + web_results if web_results else "")
+        
         st.success("✅ Response Generated!")
         st.markdown(f"**🧠 Firebox**: {full_response}")
 
