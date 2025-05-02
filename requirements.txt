@@ -3,8 +3,6 @@ google-generativeai
 requests
 beautifulsoup4
 fpdf
-pyttsx3
-SpeechRecognition
 pandas
 Pillow
 stability-sdk
