@@ -1,12 +1,10 @@
 streamlit
-google-generativeai
 requests
 beautifulsoup4
 fpdf
-pandas
 Pillow
+pyttsx3; platform_system == "Windows"
+speechrecognition; platform_system == "Windows"
+pyaudio; platform_system == "Windows"
 stability-sdk
-openpyxl
-pyttsx3 ; platform_system != "Linux"
-SpeechRecognition ; platform_system != "Linux"
-pyaudio ; platform_system == "Windows"
+google-generativeai
