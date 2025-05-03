@@ -155,62 +155,105 @@ def generate_image_stability(prompt):
 # === Custom Premium HTML UI ===
 custom_css = """
 <style>
-body {
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    color: white;
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+html, body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: #ffffff;
+    margin: 0;
+    padding: 0;
 }
+
 h1 {
-    font-family: 'Segoe UI', sans-serif;
-    font-size: 3rem;
-    background: linear-gradient(to right, #ff416c, #ff4b2b);
+    font-size: 3.5rem;
+    text-align: center;
+    font-weight: 700;
+    background: linear-gradient(to right, #f7971e, #ffd200);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
-input[type="text"] {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border: 1px solid #ff4b2b;
-    border-radius: 12px;
-    padding: 10px;
-}
-div.stMarkdown {
-    background: rgba(255, 255, 255, 0.08);
-    padding: 20px;
-    border-radius: 20px;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-}
-button {
-    background: linear-gradient(45deg, #ff416c, #ff4b2b);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    font-weight: bold;
-    border-radius: 12px;
-    cursor: pointer;
+
+.stTextInput input, .stTextArea textarea {
+    background-color: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 15px;
+    padding: 12px;
+    color: #fff;
+    font-size: 16px;
     transition: all 0.3s ease-in-out;
 }
-button:hover {
-    transform: scale(1.1);
-    background: linear-gradient(45deg, #ff4b2b, #ff416c);
+
+.stTextInput input:focus, .stTextArea textarea:focus {
+    border-color: #ffd200;
+    box-shadow: 0 0 12px #ffd20088;
 }
-.stButton > button {
+
+div.stMarkdown {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.2);
+    margin-top: 20px;
+    transition: all 0.3s ease;
+}
+
+button, .stButton > button {
+    background: linear-gradient(45deg, #f7971e, #ffd200);
+    color: #000;
+    border: none;
+    padding: 14px 24px;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
     width: 100%;
 }
-label, .stCheckbox, .stTextInput {
-    color: white !important;
+
+button:hover, .stButton > button:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 18px rgba(255, 210, 0, 0.7);
 }
+
+label, .stCheckbox > div, .stTextInput label {
+    color: #f0f0f0 !important;
+}
+
 img {
     border-radius: 16px;
-    box-shadow: 0 0 20px rgba(255, 75, 43, 0.4);
-    margin-top: 20px;
+    box-shadow: 0 0 30px rgba(255, 210, 0, 0.4);
+    margin-top: 25px;
+    max-width: 100%;
 }
+
+.stCheckbox {
+    background: rgba(255,255,255,0.05);
+    padding: 10px 15px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    transition: all 0.2s ease;
+}
+
+.stCheckbox:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+hr {
+    border: none;
+    height: 2px;
+    background: linear-gradient(to right, #ffd200, #f7971e);
+    margin: 30px 0;
+}
+
 </style>
 """
+
 st.markdown(custom_css, unsafe_allow_html=True)
 
 # === UI Starts ===
