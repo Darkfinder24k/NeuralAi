@@ -1,4 +1,7 @@
 import streamlit as st 
+st.set_page_config(page_title="🔥 Firebox AI", layout="wide")  # ✅ MUST BE FIRST
+
+# All other imports after
 import google.generativeai as genai
 import requests
 from bs4 import BeautifulSoup
