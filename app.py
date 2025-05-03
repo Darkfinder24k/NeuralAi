@@ -185,7 +185,7 @@ h1 {
 
 .stTextInput input:focus, .stTextArea textarea:focus {
     border-color: #ffd200;
-    box-shadow: 0 0 12px #ffd20088;
+    box-shadow: 0 0 12px #ffd200;
 }
 
 div.stMarkdown {
@@ -268,4 +268,14 @@ else:
         response_gemini = call_firebox_gemini(user_input)
         response_deepseek = deepseek_ai_response(user_input)
         final_response = merge_responses(response_gemini, response_deepseek)
-        st.write(f"🔥 Firebox Answer: {final_response}")
+        
+        # Storing previous responses in session state
+        if "responses" not in st.session_state:
+            st.session_state["responses"] = []
+        
+        # Append new response
+        st.session_state["responses"].append(final_response)
+        
+        # Display all responses stored in session state
+        for idx, response in enumerate(st.session_state["responses"], 1):
+            st.write(f"🔥 Firebox Answer #{idx}: {response}")
