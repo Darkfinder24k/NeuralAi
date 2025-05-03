@@ -90,27 +90,6 @@ def search_web(query):
     except Exception as e:
         return f"❌ Web search failed: {e}"
 
-# === Image Generation (Stable Diffusion) ===
-def generate_image_stability(prompt):
-    stability_api_client = client.StabilityInference(
-        key=stability_api,
-        verbose=True,
-    )
-    try:
-        answers = stability_api_client.generate(
-            prompt=prompt, steps=30, width=512, height=512
-        )
-        for resp in answers:
-            for art in resp.artifacts:
-                if art.finish_reason == generation.FILTER:
-                    st.warning("⚠️ Prompt filtered for safety.")
-                    return None
-                if art.type == generation.ARTIFACT_IMAGE:
-                    return Image.open(io.BytesIO(art.binary))
-    except Exception as e:
-        st.error(f"Stable Diffusion error: {e}")
-    return None
-
 # === Custom Premium HTML UI ===
 custom_css = """
 <style>
@@ -262,37 +241,26 @@ st.markdown(custom_css, unsafe_allow_html=True)
 # === UI Starts ===
 st.title("🔥 Firebox AI – Ultimate Assistant")
 
-# Web and Image Search buttons with icons
-col1, col2 = st.columns(2)
-
-with col1:
-    web_search_button = st.button("🌐 Web Search", key="web_search")
-with col2:
-    image_gen_button = st.button("🎨 Image Generation", key="image_gen")
+# Web Search button with icon
+web_search_button = st.button("🌐 Web Search", key="web_search")
 
 # Default input field
 user_input = st.text_input("Your Query:")
 
-# Automatically update prompt if user selects Web Search or Image Generation
-if web_search_button:
-    user_input = f"WebSearch: {user_input}"
-
-elif image_gen_button:
-    user_input = f"Image Generation: {user_input}"
+# Add the message about Firebox making mistakes permanently fixed at the bottom
+st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="font-weight: bold;">A better sentence</span></div>', unsafe_allow_html=True)
 
 if user_input:
     # Generate answer based on input
-    if "WebSearch" in user_input:
-        web_results = search_web(user_input.replace("WebSearch:", "").strip())
-        gemini_response = call_firebox_gemini(user_input.replace("WebSearch:", "").strip())
-        deepseek_response = deepseek_ai_response(user_input.replace("WebSearch:", "").strip())
+    gemini_response = call_firebox_gemini(user_input)
+    deepseek_response = deepseek_ai_response(user_input)
+
+    # If web search is clicked, fetch the web results
+    if web_search_button:
+        web_results = search_web(user_input)
         merged_response = merge_responses(gemini_response, deepseek_response, web_results)
         st.markdown(merged_response)
-    
-    elif "Image Generation" in user_input:
-        generated_image = generate_image_stability(user_input.replace("Image Generation:", "").strip())
-        if generated_image:
-            st.image(generated_image)
+    else:
+        # Normal response without web search
+        st.markdown(gemini_response)
 
-# Add the message about Firebox making mistakes permanently fixed at the bottom
-st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="font-weight: bold;">A better sentence</span></div>', unsafe_allow_html=True)
