@@ -18,33 +18,32 @@ if platform.system() == "Windows":
 # Stability + API keys
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 from stability_sdk import client
-from api import gemini_api, stability_api
+from api import gemini_api, stability_api, deepseek_api  # <- include deepseek_api here
 
 # Configure Gemini
 genai.configure(api_key=gemini_api)
 
-# === LLaMA AI (via AIMLAPI) ===
-def llama_ai_response(prompt):
-    url = "https://api.aimlapi.com/v1/chat/completions"
-    headers = {
-        "Authorization": "Bearer e5b7931e7e214e1eb43ba7182d7a2176",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "model": "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
-        "messages": [{"role": "user", "content": prompt}]
-    }
+# === DeepSeek AI ===
+def deepseek_ai_response(prompt):
+    try:
+        url = "https://api.deepseek.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {deepseek_api}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": "deepseek-chat",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.7
+        }
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code == 200:
+            return response.json()["choices"][0]["message"]["content"]
+        return f"❌ DeepSeek API error: {response.status_code}"
+    except Exception as e:
+        return f"❌ DeepSeek error: {e}"
 
-    response = requests.post(url, headers=headers, json=data)
-    if response.status_code == 200:
-        try:
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
-        except Exception:
-            return "⚠️ Couldn't parse LLaMA response."
-    return f"❌ LLaMA API error: {response.status_code}"
-
-# === Gemini Response ===
+# === Gemini Response (Base) ===
 def call_firebox_gemini(prompt):
     model = genai.GenerativeModel("gemini-2.0-flash")
     try:
@@ -59,6 +58,23 @@ Prompt: {prompt}
         return "".join([p.text for p in response.parts])
     except Exception as e:
         return f"❌ Gemini API error: {e}"
+
+# === Merge Responses ===
+def merge_responses(gemini_text, deepseek_text):
+    try:
+        prompt = (
+            f"You are Firebox AI. You will now intelligently merge two responses into one final, polished answer.\n"
+            f"Do not mention DeepSeek, Gemini, or any AI name.\n"
+            f"Remove duplicate, wrong, or conflicting info.\n\n"
+            f"Response A:\n{gemini_text}\n\n"
+            f"Response B:\n{deepseek_text}\n\n"
+            f"🔥 Firebox Final Answer:"
+        )
+        model = genai.GenerativeModel("gemini-2.0-pro")
+        response = model.generate_content(prompt)
+        return "".join([p.text for p in response.parts])
+    except Exception as e:
+        return f"❌ Merge error: {e}"
 
 # === Web Search ===
 def search_web(query):
@@ -146,26 +162,24 @@ user_input = st.text_input("Your Question:", value=st.session_state["spoken_inpu
 use_web = st.checkbox("🌐 Include Web Results")
 image_prompt = st.text_input("🎨 Generate an Image Prompt")
 
-# Handle Main Logic
+# Main Logic
 if user_input:
     with st.spinner("Generating response..."):
         gemini = call_firebox_gemini(user_input)
-        llama = llama_ai_response(user_input)
-        full_response = f"🧠 **Firebox (Gemini)**:\n{gemini}\n\n🦙 **LLaMA AI**:\n{llama}"
+        deepseek = deepseek_ai_response(user_input)
+        final = merge_responses(gemini, deepseek)
+
         if use_web:
             web = search_web(user_input)
-            full_response += "\n\n" + web
+            final += "\n\n" + web
 
-        st.markdown(full_response)
+        st.markdown(f"🧠 **Firebox AI**:\n{final}")
 
-        # Speak
-        if platform.system() == "Windows":
-            if st.button("🔊 Speak Response"):
-                speak_text(full_response)
+        if platform.system() == "Windows" and st.button("🔊 Speak Response"):
+            speak_text(final)
 
-        # Export
         if st.button("📄 Export as PDF"):
-            filename = export_to_pdf(full_response)
+            filename = export_to_pdf(final)
             st.success(f"PDF saved: {filename}")
 
 # Voice Input
