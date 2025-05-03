@@ -149,6 +149,82 @@ def generate_image_stability(prompt):
         st.error(f"Stable Diffusion error: {e}")
     return None
 
+# === Custom Premium HTML UI ===
+custom_css = """
+<style>
+/* Background Gradient */
+body {
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    color: white;
+}
+
+/* Firebox Header */
+h1 {
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 3rem;
+    background: linear-gradient(to right, #ff416c, #ff4b2b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+/* Input Field */
+input[type="text"] {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid #ff4b2b;
+    border-radius: 12px;
+    padding: 10px;
+}
+
+/* Chat Box */
+div.stMarkdown {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Buttons */
+button {
+    background: linear-gradient(45deg, #ff416c, #ff4b2b);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-weight: bold;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+}
+
+button:hover {
+    transform: scale(1.1);
+    background: linear-gradient(45deg, #ff4b2b, #ff416c);
+}
+
+.stButton > button {
+    width: 100%;
+}
+
+/* Checkbox & Labels */
+label, .stCheckbox, .stTextInput {
+    color: white !important;
+}
+
+/* Image styling */
+img {
+    border-radius: 16px;
+    box-shadow: 0 0 20px rgba(255, 75, 43, 0.4);
+    margin-top: 20px;
+}
+</style>
+"""
+st.markdown(custom_css, unsafe_allow_html=True)
+
 # === UI Starts ===
 st.set_page_config(page_title="🔥 Firebox AI", layout="wide")
 st.title("🔥 Firebox AI – Ultimate Assistant")
