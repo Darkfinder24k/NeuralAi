@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 import google.generativeai as genai
 import requests
 from bs4 import BeautifulSoup
@@ -18,7 +18,7 @@ if platform.system() == "Windows":
 # Stability + API keys
 import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
 from stability_sdk import client
-from api import gemini_api, stability_api, deepseek_api  # <- include deepseek_api here
+from api import gemini_api, stability_api, deepseek_api
 
 # Configure Gemini
 genai.configure(api_key=gemini_api)
@@ -152,13 +152,10 @@ def generate_image_stability(prompt):
 # === Custom Premium HTML UI ===
 custom_css = """
 <style>
-/* Background Gradient */
 body {
     background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
     color: white;
 }
-
-/* Firebox Header */
 h1 {
     font-family: 'Segoe UI', sans-serif;
     font-size: 3rem;
@@ -169,8 +166,6 @@ h1 {
     text-align: center;
     margin-bottom: 30px;
 }
-
-/* Input Field */
 input[type="text"] {
     background: rgba(255, 255, 255, 0.1);
     color: white;
@@ -178,8 +173,6 @@ input[type="text"] {
     border-radius: 12px;
     padding: 10px;
 }
-
-/* Chat Box */
 div.stMarkdown {
     background: rgba(255, 255, 255, 0.08);
     padding: 20px;
@@ -188,8 +181,6 @@ div.stMarkdown {
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.15);
 }
-
-/* Buttons */
 button {
     background: linear-gradient(45deg, #ff416c, #ff4b2b);
     color: white;
@@ -200,22 +191,16 @@ button {
     cursor: pointer;
     transition: all 0.3s ease-in-out;
 }
-
 button:hover {
     transform: scale(1.1);
     background: linear-gradient(45deg, #ff4b2b, #ff416c);
 }
-
 .stButton > button {
     width: 100%;
 }
-
-/* Checkbox & Labels */
 label, .stCheckbox, .stTextInput {
     color: white !important;
 }
-
-/* Image styling */
 img {
     border-radius: 16px;
     box-shadow: 0 0 20px rgba(255, 75, 43, 0.4);
@@ -232,13 +217,11 @@ st.title("🔥 Firebox AI – Ultimate Assistant")
 if "spoken_input" not in st.session_state:
     st.session_state["spoken_input"] = ""
 
-# Input UI
 st.markdown("Ask me anything 👇")
 user_input = st.text_input("Your Question:", value=st.session_state["spoken_input"])
 use_web = st.checkbox("🌐 Include Web Results")
 image_prompt = st.text_input("🎨 Generate an Image Prompt")
 
-# Main Logic
 if user_input:
     with st.spinner("Generating response..."):
         gemini = call_firebox_gemini(user_input)
@@ -258,7 +241,6 @@ if user_input:
             filename = export_to_pdf(final)
             st.success(f"PDF saved: {filename}")
 
-# Voice Input
 if platform.system() == "Windows":
     if st.button("🎙️ Speak Your Query"):
         spoken = recognize_speech()
@@ -266,7 +248,6 @@ if platform.system() == "Windows":
             st.session_state["spoken_input"] = spoken
             st.experimental_rerun()
 
-# Image Generation
 if image_prompt:
     with st.spinner("🎨 Generating image..."):
         image = generate_image_stability(image_prompt)
