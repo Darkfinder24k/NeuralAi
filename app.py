@@ -214,7 +214,6 @@ img {
 st.markdown(custom_css, unsafe_allow_html=True)
 
 # === UI Starts ===
-st.set_page_config(page_title="🔥 Firebox AI", layout="wide")
 st.title("🔥 Firebox AI – Ultimate Assistant")
 
 if "spoken_input" not in st.session_state:
