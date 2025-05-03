@@ -60,14 +60,15 @@ Prompt: {prompt}
         return f"❌ Gemini API error: {e}"
 
 # === Merge Responses ===
-def merge_responses(gemini_text, deepseek_text):
+def merge_responses(gemini_text, deepseek_text, web_text):
     try:
         prompt = (
-            f"You are Firebox AI. You will now intelligently merge two responses into one final, polished answer.\n"
+            f"You are Firebox AI. You will now intelligently merge three responses into one final, polished answer.\n"
             f"Do not mention DeepSeek, Gemini, or any AI name.\n"
             f"Remove duplicate, wrong, or conflicting info.\n\n"
-            f"Response A:\n{gemini_text}\n\n"
-            f"Response B:\n{deepseek_text}\n\n"
+            f"Response A (Gemini):\n{gemini_text}\n\n"
+            f"Response B (DeepSeek):\n{deepseek_text}\n\n"
+            f"Response C (Web Search):\n{web_text}\n\n"
             f"🔥 Firebox Final Answer:"
         )
         model = genai.GenerativeModel("gemini-2.0-flash")
@@ -89,46 +90,7 @@ def search_web(query):
     except Exception as e:
         return f"❌ Web search failed: {e}"
 
-# === Text-to-Speech ===
-def speak_text(text):
-    try:
-        engine = pyttsx3.init()
-        engine.setProperty('rate', 170)
-        engine.setProperty('volume', 1.0)
-        voices = engine.getProperty('voices')
-        engine.setProperty('voice', voices[0].id)
-        engine.say(text)
-        engine.runAndWait()
-    except Exception as e:
-        st.error(f"Speech error: {e}")
-
-# === Speech Recognition ===
-def recognize_speech():
-    r = sr.Recognizer()
-    try:
-        with sr.Microphone() as source:
-            st.info("🎙️ Listening...")
-            audio = r.listen(source)
-        return r.recognize_google(audio)
-    except sr.UnknownValueError:
-        return "Sorry, I didn't understand."
-    except sr.RequestError:
-        return "Speech service unavailable."
-    except Exception as e:
-        return f"Speech error: {e}"
-
-# === Export to PDF ===
-def export_to_pdf(content):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    for line in content.split('\n'):
-        pdf.cell(200, 10, txt=line, ln=True)
-    filename = f"Firebox_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-    pdf.output(filename)
-    return filename
-
-# === Stable Diffusion Image ===
+# === Image Generation (Stable Diffusion) ===
 def generate_image_stability(prompt):
     stability_api_client = client.StabilityInference(
         key=stability_api,
@@ -185,7 +147,7 @@ h1 {
 
 .stTextInput input:focus, .stTextArea textarea:focus {
     border-color: #ffd200;
-    box-shadow: 0 0 12px #ffd200;
+    box-shadow: 0 0 12px #ffd20088;
 }
 
 div.stMarkdown {
@@ -247,6 +209,7 @@ hr {
     background: linear-gradient(to right, #ffd200, #f7971e);
     margin: 30px 0;
 }
+
 </style>
 """
 
@@ -255,27 +218,39 @@ st.markdown(custom_css, unsafe_allow_html=True)
 # === UI Starts ===
 st.title("🔥 Firebox AI – Ultimate Assistant")
 
-if "spoken_input" not in st.session_state:
-    st.session_state["spoken_input"] = False
+# Set up buttons for Web Search and Image Generation
+search_option = st.selectbox("Choose Action", ["", "🌐 Web Search", "🎨 Image Generation"])
 
-# Voice interaction toggle
-if st.session_state["spoken_input"]:
-    st.button("Stop Voice Input", on_click=lambda: setattr(st.session_state, "spoken_input", False))
+# Default input field
+user_input = st.text_input("Your Query:")
 
-else:
-    user_input = st.text_input("🔥 Ask Firebox AI a question:")
-    if st.button("Ask Firebox"):
-        response_gemini = call_firebox_gemini(user_input)
-        response_deepseek = deepseek_ai_response(user_input)
-        final_response = merge_responses(response_gemini, response_deepseek)
-        
-        # Storing previous responses in session state
-        if "responses" not in st.session_state:
-            st.session_state["responses"] = []
-        
-        # Append new response
-        st.session_state["responses"].append(final_response)
-        
-        # Display all responses stored in session state
-        for idx, response in enumerate(st.session_state["responses"], 1):
-            st.write(f"🔥 Firebox Answer #{idx}: {response}")
+# Automatically update prompt if user selects Web Search or Image Generation
+if search_option == "🌐 Web Search":
+    user_input = f"WebSearch: {user_input}"
+
+elif search_option == "🎨 Image Generation":
+    user_input = f"Image Generation: {user_input}"
+
+if user_input:
+    # Generate answer based on input
+    if "WebSearch" in user_input:
+        web_results = search_web(user_input.replace("WebSearch:", "").strip())
+        gemini_response = call_firebox_gemini(user_input.replace("WebSearch:", "").strip())
+        deepseek_response = deepseek_ai_response(user_input.replace("WebSearch:", "").strip())
+        merged_response = merge_responses(gemini_response, deepseek_response, web_results)
+        st.markdown(merged_response)
+    
+    elif "Image Generation" in user_input:
+        generated_image = generate_image_stability(user_input.replace("Image Generation:", "").strip())
+        if generated_image:
+            st.image(generated_image)
+        else:
+            st.error("❌ Image generation failed.")
+
+    else:
+        # Process normal queries
+        gemini_response = call_firebox_gemini(user_input)
+        st.markdown(gemini_response)
+
+# Reminder that Firebox can make mistakes
+st.markdown("⚠️ Note: Firebox can make mistakes. Always verify critical information.")
