@@ -212,14 +212,16 @@ hr {
 
 #firebox-footer {
     position: fixed;
-    bottom: 10px;
+    bottom: 0;
+    left: 0;
     width: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
     text-align: center;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
     padding: 10px;
     font-size: 14px;
     border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.6);
 }
 
 .stButton > button {
@@ -232,6 +234,26 @@ hr {
     text-align: center;
 }
 
+.search-icon {
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: white;
+}
+
+.search-button {
+    padding: 10px;
+    border-radius: 50%;
+    background-color: transparent;
+    border: 1px solid #ffd200;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.search-button:hover {
+    background-color: #ffd200;
+    color: black;
+}
+
 </style>
 """
 
@@ -240,17 +262,22 @@ st.markdown(custom_css, unsafe_allow_html=True)
 # === UI Starts ===
 st.title("🔥 Firebox AI – Ultimate Assistant")
 
-# Set up buttons for Web Search and Image Generation
-search_option = st.selectbox("Choose Action", ["", "🌐 Web Search", "🎨 Image Generation"])
+# Web and Image Search buttons with icons
+col1, col2 = st.columns(2)
+
+with col1:
+    web_search_button = st.button("🌐 Web Search", key="web_search")
+with col2:
+    image_gen_button = st.button("🎨 Image Generation", key="image_gen")
 
 # Default input field
 user_input = st.text_input("Your Query:")
 
 # Automatically update prompt if user selects Web Search or Image Generation
-if search_option == "🌐 Web Search":
+if web_search_button:
     user_input = f"WebSearch: {user_input}"
 
-elif search_option == "🎨 Image Generation":
+elif image_gen_button:
     user_input = f"Image Generation: {user_input}"
 
 if user_input:
@@ -266,13 +293,6 @@ if user_input:
         generated_image = generate_image_stability(user_input.replace("Image Generation:", "").strip())
         if generated_image:
             st.image(generated_image)
-        else:
-            st.error("❌ Image generation failed.")
 
-    else:
-        # Process normal queries
-        gemini_response = call_firebox_gemini(user_input)
-        st.markdown(gemini_response)
-
-# Permanent footer
-st.markdown('<div id="firebox-footer">⚠️ Note: Firebox can make mistakes. Always verify critical information.</div>', unsafe_allow_html=True)
+# Add the message about Firebox making mistakes permanently fixed at the bottom
+st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="font-weight: bold;">A better sentence</span></div>', unsafe_allow_html=True)
