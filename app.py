@@ -210,6 +210,28 @@ hr {
     margin: 30px 0;
 }
 
+#firebox-footer {
+    position: fixed;
+    bottom: 10px;
+    width: 100%;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 10px;
+}
+
+.stButton > button {
+    margin-bottom: 15px;
+}
+
+.stButton {
+    margin-top: 20px;
+    width: 100%;
+    text-align: center;
+}
+
 </style>
 """
 
@@ -252,5 +274,5 @@ if user_input:
         gemini_response = call_firebox_gemini(user_input)
         st.markdown(gemini_response)
 
-# Reminder that Firebox can make mistakes
-st.markdown("⚠️ Note: Firebox can make mistakes. Always verify critical information.")
+# Permanent footer
+st.markdown('<div id="firebox-footer">⚠️ Note: Firebox can make mistakes. Always verify critical information.</div>', unsafe_allow_html=True)
