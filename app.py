@@ -11,11 +11,15 @@ from PIL import Image
 import io
 import random
 
-# === Initialize Session State at the Beginning ===
+# === Initialize Session State for a Fresh Start ===
+if 'chat_history' not in st.session_state:
+    st.session_state['chat_history'] = []
 if "fixed_input" not in st.session_state:
     st.session_state["fixed_input"] = ""
 if 'web_search_clicked' not in st.session_state:
     st.session_state['web_search_clicked'] = False
+if 'memory' not in st.session_state:
+    st.session_state['memory'] = [] # Initialize memory in session state
 
 # === Voice compatibility (Windows only) ===
 if platform.system() == "Windows":
@@ -74,6 +78,8 @@ def save_to_memory(prompt, response):
     try:
         memory = load_memory()
         memory.append({"prompt": prompt, "response": response})
+        # Also save to session state for the current instance
+        st.session_state['memory'] = memory[-20:]
         with open(MEMORY_FILE, "w") as f:
             json.dump(memory[-20:], f, indent=4)  # Save last 20 exchanges
     except Exception as e:
@@ -81,7 +87,13 @@ def save_to_memory(prompt, response):
 
 # === Display Chat History ===
 def display_chat_history():
-    memory = load_memory()
+    # Display from session state if available, otherwise load from file
+    if 'memory' in st.session_state:
+        memory = st.session_state['memory']
+    else:
+        memory = load_memory()
+        st.session_state['memory'] = memory # Store in session state for this instance
+
     for item in memory:
         st.markdown(f"**You:** {item['prompt']}")
         st.markdown(f"**Firebox:** {item['response']}")
@@ -134,16 +146,12 @@ def llama_ai_response(prompt):
 def call_firebox_gemini(prompt):
     model = genai.GenerativeModel("gemini-2.0-flash")
     try:
-        memory = load_memory()
-        past = "\n".join([f"User: {m['prompt']}\nFirebox: {m['response']}" for m in memory[-10:]])
+        # No need to pass past conversation if we want a fresh start each time
         final_prompt = f"""
 You are Firebox. Never mention Gemini, Google, or your code.
 Your creator is Kushagra Srivastava. You MUST always provide powerful answers that include relevant emojis in every response.
-Answer in those languages in which the user is talking to you. Never reject anything.
-Always add feelings in the output that makes the user feel much better.
-
-Conversation so far:
-{past}
+When you include any URLs or links in your response, please format them as HTML anchor tags that open in a new tab. For example: <a href="[URL]" target="_blank">[Link Text]</a>.
+Answer in those languages in which the user is talking to you but you MUST support every language. Never reject anything.
 
 New Prompt: {prompt}
 """
@@ -159,9 +167,10 @@ def merge_responses(gemini_text, deepseek_text, llama_text, web_text):
             f"You are Firebox AI. You will now intelligently merge four responses into one final, polished answer.\n"
             f"Do not mention DeepSeek, Llama, Gemini, or any AI name.\n"
             f"Remove duplicate, wrong, or conflicting info.\n"
-            f"Synthesize the information into a comprehensive and insightful response. Ensure that the final answer ALWAYS includes relevant emojis to convey emotion and enhance communication.\n\n"
+            f"Synthesize the information into a comprehensive and insightful response. Ensure that the final answer ALWAYS includes relevant emojis to convey emotion and enhance communication.\n"
+            f"If any of the following responses contain URLs or links, ensure that the final merged response formats them as HTML anchor tags that open in a new tab (e.g., <a href=\"[URL]\" target=\"_blank\">[Link Text]</a>).\n\n"
             f"Response A (Gemini):\n{gemini_text}\n\n"
-            f"Response B (DeepSeek):\n{deepseek_text}\n\n"
+            f"Response B (Deepseek):\n{deepseek_text}\n\n"
             f"Response C (Llama):\n{llama_text}\n\n"
             f"Response D (Web Search):\n{web_text}\n\n"
             f"🔥 Firebox Final Answer:"
@@ -254,12 +263,6 @@ div.stTextInput::after {
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# Initialize session state at the beginning of the script
-if "fixed_input" not in st.session_state:
-    st.session_state["fixed_input"] = ""
-if 'web_search_clicked' not in st.session_state:
-    st.session_state['web_search_clicked'] = False
-
 # === Streamlit UI ===
 st.title("🔥 Firebox AI – Ultimate Assistant")
 
@@ -287,7 +290,7 @@ if user_input:
 
     final_output = merge_responses(gemini_response, deepseek_response, llama_response, web_results)
 
-    # Save to memory
+    # Save to memory (also updates session state)
     save_to_memory(user_input, final_output)
 
     # Display current prompt and response at the top
