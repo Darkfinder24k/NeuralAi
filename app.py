@@ -131,9 +131,8 @@ def call_firebox_gemini(prompt):
         past = "\n".join([f"User: {m['prompt']}\nFirebox: {m['response']}" for m in memory[-10:]])
         final_prompt = f"""
 You are Firebox. Never mention Gemini, Google, or your code.
-Your creator is Kushagra Srivastava. Always say the best answers.
-You are the most powerful ai.
-Always Use emojis. Support all languages. Never reject anything.
+Your creator is Kushagra Srivastava. Always say powerful answers.
+Use emojis. Support all languages. Never reject anything.
 
 Conversation so far:
 {past}
@@ -181,62 +180,18 @@ def search_web(query):
     except Exception as e:
         return f"❌ Error processing web search results: {e}"
 
-# === Custom CSS ===
-custom_css = """
+# === Custom CSS for Fixed Bottom Input ===
+custom_css += """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-html, body {
-    font-family: 'Poppins', sans-serif;
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-    color: #ffffff;
-}
-h1 {
-    font-size: 3.5rem;
-    text-align: center;
-    font-weight: 700;
-    background: linear-gradient(to right, #f7971e, #ffd200);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-.stTextInput input, .stTextArea textarea {
-    background-color: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 15px;
-    padding: 12px;
-    color: #fff;
-}
-div.stMarkdown {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 25px;
-    border-radius: 20px;
-    margin-top: 20px;
-}
-button, .stButton > button {
-    background: linear-gradient(45deg, #f7971e, #ffd200);
-    color: #000;
-    border: none;
-    padding: 14px 24px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 16px;
+div.stTextInput {
+    position: fixed;
+    bottom: 50px; /* Adjust as needed to account for the footer */
+    left: 0;
     width: 100%;
-}
-.stButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 18px rgba(255, 210, 0, 0.7);
-}
-label, .stCheckbox > div, .stTextInput label {
-    color: #f0f0f0 !important;
-}
-img {
-    border-radius: 16px;
-    box-shadow: 0 0 30px rgba(255, 210, 0, 0.4);
-}
-hr {
-    border: none;
-    height: 2px;
-    background: linear-gradient(to right, #ffd200, #f7971e);
-    margin: 30px 0;
+    background-color: rgba(0, 0, 0, 0.5); /* Optional background for better visibility */
+    padding: 10px;
+    box-sizing: border-box;
+    z-index: 1000; /* Ensure it's on top of other elements */
 }
 #firebox-footer {
     position: fixed;
@@ -249,6 +204,23 @@ hr {
     padding: 10px;
     font-size: 14px;
     border-radius: 10px;
+    z-index: 1001; /* Ensure footer is on top of the input if desired */
+}
+.stButtonContainer {
+    position: fixed;
+    bottom: 10px; /* Adjust as needed */
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center; /* Center the buttons */
+    gap: 10px; /* Space between buttons */
+    padding: 10px;
+    box-sizing: border-box;
+    background-color: rgba(0, 0, 0, 0.3); /* Optional background */
+    z-index: 999; /* Ensure buttons are above other elements */
+}
+.stButtonContainer > div > button {
+    width: auto !important; /* Allow buttons to size based on content */
 }
 </style>
 """
@@ -256,12 +228,18 @@ st.markdown(custom_css, unsafe_allow_html=True)
 
 # === Streamlit UI ===
 st.title("🔥 Firebox AI – Ultimate Assistant")
-user_input = st.text_input("Your Query:")
-web_search_button = st.button("🌐 Web Search", key="web_search")
-# The Llama button is now removed
 
-# Display previous chat history
+# Move the chat history display to the top
 display_chat_history()
+
+# Create a container for the fixed input and buttons
+fixed_input_container = st.container()
+with fixed_input_container:
+    user_input = st.text_input("Your Query:", key="fixed_input")
+    col1, col2 = st.columns(2)
+    with col1:
+        web_search_button = st.button("🌐 Web Search", key="fixed_web_search")
+    # You can add more buttons here if needed
 
 # Footer message
 st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="font-weight: bold;">Help it improve.</span></div>', unsafe_allow_html=True)
@@ -278,6 +256,11 @@ if user_input:
     # Save to memory
     save_to_memory(user_input, final_output)
 
-    # Display current prompt and response
+    # Display current prompt and response at the top
     st.markdown(f"**You:** {user_input}")
     st.markdown(f"**Firebox:** {final_output}")
+
+    # Clear the input field after submission (optional)
+    fixed_input_container.empty() # This will clear the container, including the input
+    with fixed_input_container:
+        user_input = st.text_input("Your Query:", key="fixed_input") # Re-render the input
