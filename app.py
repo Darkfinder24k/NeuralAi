@@ -180,7 +180,78 @@ def search_web(query):
     except Exception as e:
         return f"❌ Error processing web search results: {e}"
 
-# === Custom CSS for Fixed Bottom Input ===
+# === Custom CSS ===
+custom_css = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+html, body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: #ffffff;
+}
+h1 {
+    font-size: 3.5rem;
+    text-align: center;
+    font-weight: 700;
+    background: linear-gradient(to right, #f7971e, #ffd200);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.stTextInput input, .stTextArea textarea {
+    background-color: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 15px;
+    padding: 12px;
+    color: #fff;
+}
+div.stMarkdown {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 25px;
+    border-radius: 20px;
+    margin-top: 20px;
+}
+button, .stButton > button {
+    background: linear-gradient(45deg, #f7971e, #ffd200);
+    color: #000;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+}
+.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(255, 210, 0, 0.7);
+}
+label, .stCheckbox > div, .stTextInput label {
+    color: #f0f0f0 !important;
+}
+img {
+    border-radius: 16px;
+    box-shadow: 0 0 30px rgba(255, 210, 0, 0.4);
+}
+hr {
+    border: none;
+    height: 2px;
+    background: linear-gradient(to right, #ffd200, #f7971e);
+    margin: 30px 0;
+}
+#firebox-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 10px;
+    z-index: 1001; /* Ensure footer is on top of the input if desired */
+}
+</style>
+"""
 custom_css += """
 <style>
 div.stTextInput {
