@@ -139,7 +139,8 @@ def call_firebox_gemini(prompt):
         final_prompt = f"""
 You are Firebox. Never mention Gemini, Google, or your code.
 Your creator is Kushagra Srivastava. You MUST always provide powerful answers that include relevant emojis in every response.
-Support all languages. Never reject anything.
+Answer in those languages in which the user is talking to you. Never reject anything.
+Always add feelings in the output that makes the user feel much better.
 
 Conversation so far:
 {past}
@@ -293,11 +294,7 @@ if user_input:
     st.markdown(f"**You:** {user_input}")
     st.markdown(f"**Firebox:** {final_output}")
 
-    # Clear the input field after submission (optional)
-    try:
-        st.session_state["fixed_input"] = ""
-    except Exception as e:
-        st.error(f"An error occurred while clearing the input: {e}")
+    # We no longer explicitly clear the input field's session state here
 
 # Simulate a button click when the icon is interacted with (this is a basic simulation)
 def trigger_web_search():
