@@ -293,7 +293,8 @@ if user_input:
     st.markdown(f"**Firebox:** {final_output}")
 
     # Clear the input field after submission (optional)
-    st.session_state["fixed_input"] = ""
+    if "fixed_input" in st.session_state:
+        st.session_state["fixed_input"] = ""
 
 # Simulate a button click when the icon is interacted with (this is a basic simulation)
 def trigger_web_search():
