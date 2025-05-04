@@ -150,7 +150,8 @@ def merge_responses(gemini_text, deepseek_text, llama_text, web_text):
         prompt = (
             f"You are Firebox AI. You will now intelligently merge four responses into one final, polished answer.\n"
             f"Do not mention DeepSeek, Llama, Gemini, or any AI name.\n"
-            f"Remove duplicate, wrong, or conflicting info.\n\n"
+            f"Remove duplicate, wrong, or conflicting info.\n"
+            f"Synthesize the information into a comprehensive and insightful response.\n\n"
             f"Response A (Gemini):\n{gemini_text}\n\n"
             f"Response B (DeepSeek):\n{deepseek_text}\n\n"
             f"Response C (Llama):\n{llama_text}\n\n"
@@ -256,7 +257,7 @@ st.markdown(custom_css, unsafe_allow_html=True)
 st.title("🔥 Firebox AI – Ultimate Assistant")
 user_input = st.text_input("Your Query:")
 web_search_button = st.button("🌐 Web Search", key="web_search")
-llama_button = st.button("🦙 Use Llama", key="llama_search") # New button for Llama
+# The Llama button is now removed
 
 # Display previous chat history
 display_chat_history()
@@ -266,21 +267,12 @@ st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="fo
 
 # === Response Logic ===
 if user_input:
-    gemini_response = ""
-    deepseek_response = ""
-    llama_response = ""
-    web_results = ""
+    gemini_response = call_firebox_gemini(user_input)
+    deepseek_response = deepseek_ai_response(user_input)
+    llama_response = llama_ai_response(user_input)
+    web_results = search_web(user_input) if web_search_button else ""
 
-    if llama_button:
-        llama_response = llama_ai_response(user_input)
-        final_output = llama_response
-    else:
-        gemini_response = call_firebox_gemini(user_input)
-        deepseek_response = deepseek_ai_response(user_input)
-        web_results = search_web(user_input) if web_search_button else ""
-        llama_response = llama_ai_response(user_input) # Still call Llama even if not the main output for potential merging
-
-        final_output = merge_responses(gemini_response, deepseek_response, llama_response, web_results)
+    final_output = merge_responses(gemini_response, deepseek_response, llama_response, web_results)
 
     # Save to memory
     save_to_memory(user_input, final_output)
