@@ -49,6 +49,13 @@ def save_to_memory(prompt, response):
     with open(MEMORY_FILE, "w") as f:
         json.dump(memory[-20:], f, indent=4)  # Save last 20 exchanges
 
+# === Display Chat History ===
+def display_chat_history():
+    memory = load_memory()
+    for item in memory:
+        st.markdown(f"**You:** {item['prompt']}")
+        st.markdown(f"**Firebox:** {item['response']}")
+
 # === DeepSeek API ===
 def deepseek_ai_response(prompt):
     try:
@@ -199,6 +206,9 @@ st.title("🔥 Firebox AI – Ultimate Assistant")
 user_input = st.text_input("Your Query:")
 web_search_button = st.button("🌐 Web Search", key="web_search")
 
+# Display previous chat history
+display_chat_history()
+
 # Footer message
 st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="font-weight: bold;">Help it improve.</span></div>', unsafe_allow_html=True)
 
@@ -215,4 +225,7 @@ if user_input:
 
     # Save to memory
     save_to_memory(user_input, final_output)
-    st.markdown(final_output)
+
+    # Display current prompt and response
+    st.markdown(f"**You:** {user_input}")
+    st.markdown(f"**Firebox:** {final_output}")
