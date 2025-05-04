@@ -76,6 +76,31 @@ def deepseek_ai_response(prompt):
     except Exception as e:
         return f"❌ DeepSeek error: {e}"
 
+# === Llama API Integration ===
+def llama_ai_response(prompt):
+    try:
+        url = "https://api.aimlapi.com/v1/chat/completions"
+        headers = {
+            "Authorization": "Bearer e5b7931e7e214e1eb43ba7182d7a2176",  # Ensure this is the correct API token
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",  # Ensure this model exists in AIMLAPI
+            "messages": [
+                {"role": "user", "content": prompt}
+            ]
+        }
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        response_data = response.json()
+        return response_data['choices'][0]['message']['content']
+    except requests.exceptions.RequestException as e:
+        return f"❌ Llama API error: {e}"
+    except ValueError:
+        return "❌ Failed to decode Llama API JSON response."
+    except KeyError as e:
+        return f"❌ Error accessing Llama API JSON key: {e}"
+
 # === Gemini Prompt Call ===
 def call_firebox_gemini(prompt):
     model = genai.GenerativeModel("gemini-2.0-flash")
@@ -98,15 +123,16 @@ New Prompt: {prompt}
         return f"❌ Gemini API error: {e}"
 
 # === Merge Responses ===
-def merge_responses(gemini_text, deepseek_text, web_text):
+def merge_responses(gemini_text, deepseek_text, llama_text, web_text):
     try:
         prompt = (
-            f"You are Firebox AI. You will now intelligently merge three responses into one final, polished answer.\n"
-            f"Do not mention DeepSeek, Gemini, or any AI name.\n"
+            f"You are Firebox AI. You will now intelligently merge four responses into one final, polished answer.\n"
+            f"Do not mention DeepSeek, Llama, Gemini, or any AI name.\n"
             f"Remove duplicate, wrong, or conflicting info.\n\n"
             f"Response A (Gemini):\n{gemini_text}\n\n"
             f"Response B (DeepSeek):\n{deepseek_text}\n\n"
-            f"Response C (Web Search):\n{web_text}\n\n"
+            f"Response C (Llama):\n{llama_text}\n\n"
+            f"Response D (Web Search):\n{web_text}\n\n"
             f"🔥 Firebox Final Answer:"
         )
         model = genai.GenerativeModel("gemini-2.0-flash")
@@ -205,6 +231,7 @@ st.markdown(custom_css, unsafe_allow_html=True)
 st.title("🔥 Firebox AI – Ultimate Assistant")
 user_input = st.text_input("Your Query:")
 web_search_button = st.button("🌐 Web Search", key="web_search")
+llama_button = st.button("🦙 Use Llama", key="llama_search") # New button for Llama
 
 # Display previous chat history
 display_chat_history()
@@ -217,11 +244,14 @@ if user_input:
     gemini_response = call_firebox_gemini(user_input)
     deepseek_response = deepseek_ai_response(user_input)
     web_results = search_web(user_input) if web_search_button else ""
+    llama_response = llama_ai_response(user_input) if llama_button else "" # Get Llama response
 
-    if web_search_button:
-        final_output = merge_responses(gemini_response, deepseek_response, web_results)
+    if llama_button:
+        final_output = llama_response # If Llama button is pressed, only show Llama's response
+    elif web_search_button:
+        final_output = merge_responses(gemini_response, deepseek_response, llama_response, web_results)
     else:
-        final_output = merge_responses(gemini_response, deepseek_response, "")
+        final_output = merge_responses(gemini_response, deepseek_response, llama_response, "")
 
     # Save to memory
     save_to_memory(user_input, final_output)
