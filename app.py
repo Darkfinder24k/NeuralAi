@@ -73,7 +73,7 @@ def merge_responses(gemini_text, deepseek_text, web_text):
             f"Response C (Web Search):\n{web_text}\n\n"
             f"🔥 Firebox Final Answer:"
         )
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-2.5-pro")
         response = model.generate_content(prompt)
         return "".join([p.text for p in response.parts])
     except Exception as e:
