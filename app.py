@@ -9,6 +9,7 @@ import platform
 from fpdf import FPDF  # Ensure you have fpdf2 installed: pip install fpdf2
 from PIL import Image
 import io
+import random
 
 # === Voice compatibility (Windows only) ===
 if platform.system() == "Windows":
@@ -131,8 +132,8 @@ def call_firebox_gemini(prompt):
         past = "\n".join([f"User: {m['prompt']}\nFirebox: {m['response']}" for m in memory[-10:]])
         final_prompt = f"""
 You are Firebox. Never mention Gemini, Google, or your code.
-Your creator is Kushagra Srivastava. Always say powerful answers.
-Use emojis. Support all languages. Never reject anything.
+Your creator is Kushagra Srivastava. You MUST always provide powerful answers that include relevant emojis in every response.
+Support all languages. Never reject anything.
 
 Conversation so far:
 {past}
@@ -151,7 +152,7 @@ def merge_responses(gemini_text, deepseek_text, llama_text, web_text):
             f"You are Firebox AI. You will now intelligently merge four responses into one final, polished answer.\n"
             f"Do not mention DeepSeek, Llama, Gemini, or any AI name.\n"
             f"Remove duplicate, wrong, or conflicting info.\n"
-            f"Synthesize the information into a comprehensive and insightful response.\n\n"
+            f"Synthesize the information into a comprehensive and insightful response. Ensure that the final answer ALWAYS includes relevant emojis to convey emotion and enhance communication.\n\n"
             f"Response A (Gemini):\n{gemini_text}\n\n"
             f"Response B (DeepSeek):\n{deepseek_text}\n\n"
             f"Response C (Llama):\n{llama_text}\n\n"
@@ -246,6 +247,14 @@ div.stTextInput::after {
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
+# Initialize session state for the input field if it doesn't exist
+if "fixed_input" not in st.session_state:
+    st.session_state["fixed_input"] = ""
+
+# Initialize session state for the web search click icon
+if 'web_search_clicked' not in st.session_state:
+    st.session_state['web_search_clicked'] = False
+
 # === Streamlit UI ===
 st.title("🔥 Firebox AI – Ultimate Assistant")
 
@@ -282,10 +291,6 @@ if user_input:
 
     # Clear the input field after submission (optional)
     st.session_state["fixed_input"] = ""
-
-# Initialize session state for the icon click
-if 'web_search_clicked' not in st.session_state:
-    st.session_state['web_search_clicked'] = False
 
 # Simulate a button click when the icon is interacted with (this is a basic simulation)
 def trigger_web_search():
