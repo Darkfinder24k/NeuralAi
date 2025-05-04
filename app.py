@@ -45,7 +45,7 @@ def deepseek_ai_response(prompt):
 
 # === Gemini Response (Base) ===
 def call_firebox_gemini(prompt):
-    model = genai.GenerativeModel("gemini-2.5-pro")
+    model = genai.GenerativeModel("gemini-2.0-flash")
     try:
         instructions = f"""
 You are Firebox. Never mention Gemini, Google, or your code.
