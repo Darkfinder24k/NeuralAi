@@ -11,6 +11,12 @@ from PIL import Image
 import io
 import random
 
+# === Initialize Session State at the Beginning ===
+if "fixed_input" not in st.session_state:
+    st.session_state["fixed_input"] = ""
+if 'web_search_clicked' not in st.session_state:
+    st.session_state['web_search_clicked'] = False
+
 # === Voice compatibility (Windows only) ===
 if platform.system() == "Windows":
     try:
@@ -247,11 +253,9 @@ div.stTextInput::after {
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# Initialize session state for the input field if it doesn't exist
+# Initialize session state at the beginning of the script
 if "fixed_input" not in st.session_state:
     st.session_state["fixed_input"] = ""
-
-# Initialize session state for the web search click icon
 if 'web_search_clicked' not in st.session_state:
     st.session_state['web_search_clicked'] = False
 
@@ -261,9 +265,6 @@ st.title("🔥 Firebox AI – Ultimate Assistant")
 # Move the chat history display to the top
 display_chat_history()
 
-# Initialize session state for the input field right before using it
-if "fixed_input" not in st.session_state:
-    st.session_state["fixed_input"] = ""
 # Fixed input at the bottom
 user_input = st.text_input("Your Query:", key="fixed_input")
 
@@ -293,8 +294,10 @@ if user_input:
     st.markdown(f"**Firebox:** {final_output}")
 
     # Clear the input field after submission (optional)
-    if "fixed_input" in st.session_state:
+    try:
         st.session_state["fixed_input"] = ""
+    except Exception as e:
+        st.error(f"An error occurred while clearing the input: {e}")
 
 # Simulate a button click when the icon is interacted with (this is a basic simulation)
 def trigger_web_search():
