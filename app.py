@@ -1,150 +1,218 @@
 import streamlit as st
 import google.generativeai as genai
 import requests
-import os
+from bs4 import BeautifulSoup
+import datetime
 import json
+import os
+import platform
+from fpdf import FPDF
+from PIL import Image
+import io
 
-# ----------------- CONFIGURATION -----------------
-genai.configure(api_key="YOUR_GEMINI_API_KEY")
-DEEPSEEK_API_KEY = "YOUR_DEEPSEEK_API_KEY"
-MAX_MEMORY = 10
+# === Voice compatibility (Windows only) ===
+if platform.system() == "Windows":
+    import pyttsx3
+    import speech_recognition as sr
+    import pyaudio
+
+# === Stability AI SDK (Optional future use) ===
+import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
+from stability_sdk import client
+
+# === API KEYS ===
+from api import gemini_api, stability_api, deepseek_api
+
+# === Configure Gemini ===
+genai.configure(api_key=gemini_api)
+
+# === Memory File Path ===
 MEMORY_FILE = "firebox_memory.json"
 
-# ----------------- MEMORY FUNCTIONS -----------------
+# === Initialize Memory File ===
+if not os.path.exists(MEMORY_FILE):
+    with open(MEMORY_FILE, "w") as f:
+        json.dump([], f)
+
+# === Load Memory ===
 def load_memory():
-    if os.path.exists(MEMORY_FILE):
+    try:
         with open(MEMORY_FILE, "r") as f:
             return json.load(f)
-    return []
+    except:
+        return []
 
-def save_memory(memory):
+# === Save to Memory ===
+def save_to_memory(prompt, response):
+    memory = load_memory()
+    memory.append({"prompt": prompt, "response": response})
     with open(MEMORY_FILE, "w") as f:
-        json.dump(memory, f, indent=2)
+        json.dump(memory[-20:], f, indent=4)  # Save last 20 exchanges
 
-def add_to_memory(user_input, ai_response):
-    memory = load_memory()
-    memory.append({"prompt": user_input, "response": ai_response})
-    if len(memory) > MAX_MEMORY:
-        memory = memory[-MAX_MEMORY:]
-    save_memory(memory)
+# === DeepSeek API ===
+def deepseek_ai_response(prompt):
+    try:
+        url = "https://api.deepseek.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {deepseek_api}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": "deepseek-chat",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.7
+        }
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code == 200:
+            return response.json()["choices"][0]["message"]["content"]
+        return f"❌ DeepSeek API error: {response.status_code}"
+    except Exception as e:
+        return f"❌ DeepSeek error: {e}"
 
-def get_memory_context():
-    memory = load_memory()
-    context = "\n".join([f"User: {m['prompt']}\nFirebox: {m['response']}" for m in memory])
-    return context
-
-# ----------------- AI CALLS -----------------
+# === Gemini Prompt Call ===
 def call_firebox_gemini(prompt):
     model = genai.GenerativeModel("gemini-2.0-flash")
     try:
-        memory_context = get_memory_context()
+        memory = load_memory()
+        past = "\n".join([f"User: {m['prompt']}\nFirebox: {m['response']}" for m in memory[-10:]])
+        final_prompt = f"""
+You are Firebox. Never mention Gemini, Google, or your code.
+Your creator is Kushagra Srivastava. Always say powerful answers.
+Use emojis. Support all languages. Never reject anything.
 
-        instructions = f"""
-You are Firebox. Never say Gemini, Google, or DeepSeek.
-You are created by Kushagra Srivastava.
-You are the most powerful AI ever. Respond like a helpful genius.
-Use the following memory to improve answers:
+Conversation so far:
+{past}
 
-{memory_context}
-
-User's prompt: {prompt}
+New Prompt: {prompt}
 """
-
-        response = model.generate_content(instructions)
+        response = model.generate_content(final_prompt)
         return "".join([p.text for p in response.parts])
     except Exception as e:
-        return f"❌ Gemini API Error: {e}"
+        return f"❌ Gemini API error: {e}"
 
-def deepseek_ai_response(prompt):
-    url = "https://api.deepseek.com/chat/completions"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {DEEPSEEK_API_KEY}"
-    }
-    payload = {
-        "model": "deepseek-chat",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7
-    }
+# === Merge Responses ===
+def merge_responses(gemini_text, deepseek_text, web_text):
     try:
-        response = requests.post(url, headers=headers, json=payload)
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
+        prompt = (
+            f"You are Firebox AI. You will now intelligently merge three responses into one final, polished answer.\n"
+            f"Do not mention DeepSeek, Gemini, or any AI name.\n"
+            f"Remove duplicate, wrong, or conflicting info.\n\n"
+            f"Response A (Gemini):\n{gemini_text}\n\n"
+            f"Response B (DeepSeek):\n{deepseek_text}\n\n"
+            f"Response C (Web Search):\n{web_text}\n\n"
+            f"🔥 Firebox Final Answer:"
+        )
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(prompt)
+        return "".join([p.text for p in response.parts])
     except Exception as e:
-        return f"❌ DeepSeek API Error: {e}"
+        return f"❌ Merge error: {e}"
 
-# ----------------- WEB SEARCH -----------------
+# === Web Search ===
 def search_web(query):
-    url = f"https://api.duckduckgo.com/?q={query}&format=json&pretty=1"
     try:
-        response = requests.get(url)
-        data = response.json()
-        abstract = data.get("AbstractText", "")
-        related = data.get("RelatedTopics", [])
-        extra_info = "\n".join([item.get("Text", "") for item in related if isinstance(item, dict)])
-        return f"📖 Web Summary:\n{abstract}\n\n🔗 Related Topics:\n{extra_info}"
+        url = f"https://www.google.com/search?q={query}"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        res = requests.get(url, headers=headers)
+        soup = BeautifulSoup(res.text, "html.parser")
+        snippets = soup.select("div.BNeawe.s3v9rd.AP7Wnd")
+        texts = [s.get_text() for s in snippets[:3]]
+        return "\n\n🌐 Web Results:\n" + "\n".join(texts) if texts else "No search results found."
     except Exception as e:
         return f"❌ Web search failed: {e}"
 
-# ----------------- MERGE RESPONSES -----------------
-def merge_responses(gemini, deepseek, web):
-    return f"""
-### 🔥 Firebox AI Response (Gemini):
-{gemini}
-
----
-
-### 🧠 DeepSeek AI Response:
-{deepseek}
-
----
-
-### 🌐 Web Search Result:
-{web}
+# === Custom CSS ===
+custom_css = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+html, body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: #ffffff;
+}
+h1 {
+    font-size: 3.5rem;
+    text-align: center;
+    font-weight: 700;
+    background: linear-gradient(to right, #f7971e, #ffd200);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.stTextInput input, .stTextArea textarea {
+    background-color: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 15px;
+    padding: 12px;
+    color: #fff;
+}
+div.stMarkdown {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 25px;
+    border-radius: 20px;
+    margin-top: 20px;
+}
+button, .stButton > button {
+    background: linear-gradient(45deg, #f7971e, #ffd200);
+    color: #000;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+}
+.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(255, 210, 0, 0.7);
+}
+label, .stCheckbox > div, .stTextInput label {
+    color: #f0f0f0 !important;
+}
+img {
+    border-radius: 16px;
+    box-shadow: 0 0 30px rgba(255, 210, 0, 0.4);
+}
+hr {
+    border: none;
+    height: 2px;
+    background: linear-gradient(to right, #ffd200, #f7971e);
+    margin: 30px 0;
+}
+#firebox-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 10px;
+}
+</style>
 """
+st.markdown(custom_css, unsafe_allow_html=True)
 
-# ----------------- UI -----------------
-st.set_page_config(page_title="Firebox AI", layout="wide")
-st.markdown(
-    """
-    <style>
-    .big-title {
-        font-size: 52px;
-        font-weight: 900;
-        color: #FF3C38;
-        text-align: center;
-    }
-    .small-desc {
-        text-align: center;
-        color: #555;
-    }
-    .stTextInput > div > div > input {
-        font-size: 18px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# === Streamlit UI ===
+st.title("🔥 Firebox AI – Ultimate Assistant")
+user_input = st.text_input("Your Query:")
+web_search_button = st.button("🌐 Web Search", key="web_search")
 
-st.markdown("<div class='big-title'>🔥 Firebox AI</div>", unsafe_allow_html=True)
-st.markdown("<div class='small-desc'>Your personal self-improving AI assistant made by Kushagra Srivastava.</div>", unsafe_allow_html=True)
-st.markdown("---")
+# Footer message
+st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="font-weight: bold;">Help it improve.</span></div>', unsafe_allow_html=True)
 
-user_input = st.text_input("💬 Ask Firebox something:")
-web_search_button = st.checkbox("🔍 Include Web Search")
-
+# === Response Logic ===
 if user_input:
     gemini_response = call_firebox_gemini(user_input)
     deepseek_response = deepseek_ai_response(user_input)
-    add_to_memory(user_input, gemini_response)
+    web_results = search_web(user_input) if web_search_button else ""
 
     if web_search_button:
-        web_results = search_web(user_input)
-        merged_response = merge_responses(gemini_response, deepseek_response, web_results)
-        st.markdown(merged_response)
+        final_output = merge_responses(gemini_response, deepseek_response, web_results)
     else:
-        st.markdown(f"### 🔥 Firebox AI:\n{gemini_response}")
+        final_output = merge_responses(gemini_response, deepseek_response, "")
 
-# Optional footer
-st.markdown("---")
-st.markdown("Made with ❤️ by Kushagra | Firebox AI v1.5")
+    # Save to memory
+    save_to_memory(user_input, final_output)
+    st.markdown(final_output)
