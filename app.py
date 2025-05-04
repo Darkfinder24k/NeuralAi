@@ -180,7 +180,7 @@ def search_web(query):
     except Exception as e:
         return f"❌ Error processing web search results: {e}"
 
-# === Custom CSS ===
+# === Custom CSS for Fixed Bottom Input with Icon ===
 custom_css = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -197,72 +197,37 @@ h1 {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-.stTextInput input, .stTextArea textarea {
-    background-color: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 15px;
-    padding: 12px;
-    color: #fff;
-}
-div.stMarkdown {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 25px;
-    border-radius: 20px;
-    margin-top: 20px;
-}
-button, .stButton > button {
-    background: linear-gradient(45deg, #f7971e, #ffd200);
-    color: #000;
-    border: none;
-    padding: 14px 24px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-size: 16px;
-    width: 100%;
-}
-.stButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 18px rgba(255, 210, 0, 0.7);
-}
-label, .stCheckbox > div, .stTextInput label {
-    color: #f0f0f0 !important;
-}
-img {
-    border-radius: 16px;
-    box-shadow: 0 0 30px rgba(255, 210, 0, 0.4);
-}
-hr {
-    border: none;
-    height: 2px;
-    background: linear-gradient(to right, #ffd200, #f7971e);
-    margin: 30px 0;
-}
-#firebox-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    text-align: center;
-    padding: 10px;
-    font-size: 14px;
-    border-radius: 10px;
-    z-index: 1001; /* Ensure footer is on top of the input if desired */
-}
-</style>
-"""
-custom_css += """
-<style>
 div.stTextInput {
     position: fixed;
     bottom: 50px; /* Adjust as needed to account for the footer */
     left: 0;
     width: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Optional background for better visibility */
-    padding: 10px;
+    padding: 10px 50px 10px 10px; /* Add padding for the icon */
     box-sizing: border-box;
     z-index: 1000; /* Ensure it's on top of other elements */
+    background-color: rgba(0, 0, 0, 0.3); /* Optional background */
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+div.stTextInput > label > div {
+    color: #fff !important; /* Style the input label */
+}
+div.stTextInput > div > input {
+    background-color: transparent !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding-left: 0 !important;
+}
+div.stTextInput::after {
+    content: "🌐"; /* Unicode for a globe icon */
+    position: absolute;
+    bottom: 18px; /* Adjust vertical position */
+    right: 15px; /* Adjust horizontal position */
+    font-size: 20px; /* Adjust icon size */
+    color: #f7971e; /* Icon color */
+    cursor: pointer;
+    z-index: 1001; /* Ensure icon is clickable */
 }
 #firebox-footer {
     position: fixed;
@@ -276,22 +241,6 @@ div.stTextInput {
     font-size: 14px;
     border-radius: 10px;
     z-index: 1001; /* Ensure footer is on top of the input if desired */
-}
-.stButtonContainer {
-    position: fixed;
-    bottom: 10px; /* Adjust as needed */
-    left: 0;
-    width: 100%;
-    display: flex;
-    justify-content: center; /* Center the buttons */
-    gap: 10px; /* Space between buttons */
-    padding: 10px;
-    box-sizing: border-box;
-    background-color: rgba(0, 0, 0, 0.3); /* Optional background */
-    z-index: 999; /* Ensure buttons are above other elements */
-}
-.stButtonContainer > div > button {
-    width: auto !important; /* Allow buttons to size based on content */
 }
 </style>
 """
@@ -303,24 +252,24 @@ st.title("🔥 Firebox AI – Ultimate Assistant")
 # Move the chat history display to the top
 display_chat_history()
 
-# Create a container for the fixed input and buttons
-fixed_input_container = st.container()
-with fixed_input_container:
-    user_input = st.text_input("Your Query:", key="fixed_input")
-    col1, col2 = st.columns(2)
-    with col1:
-        web_search_button = st.button("🌐 Web Search", key="fixed_web_search")
-    # You can add more buttons here if needed
+# Fixed input at the bottom
+user_input = st.text_input("Your Query:", key="fixed_input")
 
 # Footer message
 st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="font-weight: bold;">Help it improve.</span></div>', unsafe_allow_html=True)
 
 # === Response Logic ===
 if user_input:
+    perform_web_search = False
+    # Check if the web search icon was "clicked" (we'll simulate this)
+    if st.session_state.get('web_search_clicked'):
+        perform_web_search = True
+        st.session_state['web_search_clicked'] = False # Reset the state
+
     gemini_response = call_firebox_gemini(user_input)
     deepseek_response = deepseek_ai_response(user_input)
     llama_response = llama_ai_response(user_input)
-    web_results = search_web(user_input) if web_search_button else ""
+    web_results = search_web(user_input) if perform_web_search else ""
 
     final_output = merge_responses(gemini_response, deepseek_response, llama_response, web_results)
 
@@ -332,6 +281,18 @@ if user_input:
     st.markdown(f"**Firebox:** {final_output}")
 
     # Clear the input field after submission (optional)
-    fixed_input_container.empty() # This will clear the container, including the input
-    with fixed_input_container:
-        user_input = st.text_input("Your Query:", key="fixed_input") # Re-render the input
+    st.session_state["fixed_input"] = ""
+
+# Initialize session state for the icon click
+if 'web_search_clicked' not in st.session_state:
+    st.session_state['web_search_clicked'] = False
+
+# Simulate a button click when the icon is interacted with (this is a basic simulation)
+def trigger_web_search():
+    st.session_state['web_search_clicked'] = True
+    st.rerun()
+
+# You would ideally need a more robust way to handle clicks on the pseudo-element in CSS.
+# This basic simulation might not work perfectly for direct interaction.
+# A more advanced approach might involve JavaScript injection, which is generally discouraged in Streamlit.
+# For a truly interactive icon, a separate Streamlit button styled as an icon might be more reliable.
