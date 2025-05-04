@@ -261,6 +261,9 @@ st.title("🔥 Firebox AI – Ultimate Assistant")
 # Move the chat history display to the top
 display_chat_history()
 
+# Initialize session state for the input field right before using it
+if "fixed_input" not in st.session_state:
+    st.session_state["fixed_input"] = ""
 # Fixed input at the bottom
 user_input = st.text_input("Your Query:", key="fixed_input")
 
