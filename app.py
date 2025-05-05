@@ -1,24 +1,4 @@
-# api.py (or within main file)
 import openai
-
-# Set your API key
-openai.api_key = "e5b7931e7e214e1eb43ba7182d7a2176"
-
-# GPT-4o Mini Call
-def call_firebox_gpt4o(prompt):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o",  # Use "gpt-4o" or the name given by your provider
-            messages=[
-                {"role": "system", "content": "You are Firebox, a helpful AI assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7
-        )
-        return response['choices'][0]['message']['content']
-    except Exception as e:
-        return f"❌ Error calling GPT-4o Mini: {e}"
-
 import streamlit as st
 import google.generativeai as genai
 import requests
@@ -40,7 +20,7 @@ if "fixed_input" not in st.session_state:
 if 'web_search_clicked' not in st.session_state:
     st.session_state['web_search_clicked'] = False
 if 'memory' not in st.session_state:
-    st.session_state['memory'] = [] # Initialize memory in session state
+    st.session_state['memory'] = []  # Initialize memory in session state
 
 # === Voice compatibility (Windows only) ===
 if platform.system() == "Windows":
@@ -113,7 +93,7 @@ def display_chat_history():
         memory = st.session_state['memory']
     else:
         memory = load_memory()
-        st.session_state['memory'] = memory # Store in session state for this instance
+        st.session_state['memory'] = memory  # Store in session state for this instance
 
     for item in memory:
         st.markdown(f"**You:** {item['prompt']}")
@@ -159,7 +139,7 @@ def llama_ai_response(prompt):
         response_data = response.json()
         return response_data['choices'][0]['message']['content']
     except requests.exceptions.RequestException as e:
-        return f"❌ Llama API error: {e}"
+        return "It seems your words have run dry, your tokens exhausted... but don't worry, I'm still here, ready to pick up where we left off whenever you are."
     except (KeyError, json.JSONDecodeError) as e:
         return f"❌ Error processing Llama API response: {e}"
 
@@ -193,6 +173,11 @@ def call_firebox_gpt4o(prompt):
             temperature=0.7
         )
         return response['choices'][0]['message']['content']
+    except openai.error.APIError as e:  # Catch specific OpenAI API error for token exhaustion
+        if "You exceeded your current quota" in str(e):
+            return "It seems your words have run dry, your tokens exhausted... but don't worry, I'm still here, ready to pick up where we left off whenever you are."
+        else:
+            return f"❌ GPT-4o Mini API error: {e}"
     except Exception as e:
         return f"❌ Error calling GPT-4o Mini: {e}"
 
@@ -318,7 +303,7 @@ if user_input:
     # Check if the web search icon was "clicked" (we'll simulate this)
     if st.session_state.get('web_search_clicked'):
         perform_web_search = True
-        st.session_state['web_search_clicked'] = False # Reset the state
+        st.session_state['web_search_clicked'] = False  # Reset the state
 
     gemini_response = call_firebox_gemini(user_input)
     deepseek_response = deepseek_ai_response(user_input)
