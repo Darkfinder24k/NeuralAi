@@ -8,3 +8,4 @@ speechrecognition; platform_system == "Windows"
 pyaudio; platform_system == "Windows"
 stability-sdk
 google-generativeai
+openai
