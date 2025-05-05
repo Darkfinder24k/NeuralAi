@@ -186,23 +186,23 @@ New Prompt: {prompt}
 
 # === GPT-4o Mini Call ===
 def call_firebox_gpt4o(prompt):
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o",  # Use "gpt-4o" or the name given by your provider
-            messages=[
-                {"role": "system", "content": "You are Firebox, a helpful AI assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7
-        )
-        return response['choices'][0]['message']['content']
-    except openai.error.APIError as e:  # Catch specific OpenAI API error for token exhaustion
-        if "You exceeded your current quota" in str(e):
-            return "It seems your words have run dry, your tokens exhausted... but don't worry, I'm still here, ready to pick up where we left off whenever you are."
-        else:
-            return f"❌ GPT-4o Mini API error: {e}"
-    except Exception as e:
-        return f"❌ Error calling GPT-4o Mini: {e}"
+    # try:
+    response = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are Firebox, a helpful AI assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7
+    )
+    return response['choices'][0]['message']['content']
+    # except openai.error.APIError as e:
+    #     if "You exceeded your current quota" in str(e):
+    #         return "It seems your words have run dry..."
+    #     else:
+    #         return f"❌ GPT-4o Mini API error: {e}"
+    # except Exception as e:
+    #     return f"❌ Error calling GPT-4o Mini: {e}"
 
 # === Merge Responses ===
 def merge_responses(gemini_text, deepseek_text, llama_text, grok_text, gpt4o_text, web_text):
