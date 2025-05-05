@@ -185,24 +185,28 @@ New Prompt: {prompt}
         return f"❌ Gemini API error: {e}"
 
 # === GPT-4o Mini Call ===
+import requests
+
 def call_firebox_gpt4o(prompt):
-    # try:
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
+    api_key = "e5b7931e7e214e1eb43ba7182d7a2176"
+    url = "https://api.aimlapi.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "model": "gpt-3.5turbo",  # Replace with your desired model ID
+        "messages": [
             {"role": "system", "content": "You are Firebox, a helpful AI assistant."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.7
-    )
-    return response['choices'][0]['message']['content']
-    # except openai.error.APIError as e:
-    #     if "You exceeded your current quota" in str(e):
-    #         return "It seems your words have run dry..."
-    #     else:
-    #         return f"❌ GPT-4o Mini API error: {e}"
-    # except Exception as e:
-    #     return f"❌ Error calling GPT-4o Mini: {e}"
+        "temperature": 0.7
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+    response_data = response.json()
+
+    return response_data["choices"][0]["message"]["content"]
 
 # === Merge Responses ===
 def merge_responses(gemini_text, deepseek_text, llama_text, grok_text, gpt4o_text, web_text):
