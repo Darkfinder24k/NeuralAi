@@ -1,3 +1,24 @@
+# api.py (or within main file)
+import openai
+
+# Set your API key
+openai.api_key = "e5b7931e7e214e1eb43ba7182d7a2176"
+
+# GPT-4o Mini Call
+def call_firebox_gpt4o(prompt):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o",  # Use "gpt-4o" or the name given by your provider
+            messages=[
+                {"role": "system", "content": "You are Firebox, a helpful AI assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        return f"❌ Error calling GPT-4o Mini: {e}"
+
 import streamlit as st
 import google.generativeai as genai
 import requests
@@ -160,19 +181,35 @@ New Prompt: {prompt}
     except Exception as e:
         return f"❌ Gemini API error: {e}"
 
+# === GPT-4o Mini Call ===
+def call_firebox_gpt4o(prompt):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o",  # Use "gpt-4o" or the name given by your provider
+            messages=[
+                {"role": "system", "content": "You are Firebox, a helpful AI assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        return f"❌ Error calling GPT-4o Mini: {e}"
+
 # === Merge Responses ===
-def merge_responses(gemini_text, deepseek_text, llama_text, web_text):
+def merge_responses(gemini_text, deepseek_text, llama_text, gpt4o_text, web_text):
     try:
         prompt = (
-            f"You are Firebox AI. You will now intelligently merge four responses into one final, polished answer.\n"
-            f"Do not mention DeepSeek, Llama, Gemini, or any AI name.\n"
+            f"You are Firebox AI. You will now intelligently merge five responses into one final, polished answer.\n"
+            f"Do not mention DeepSeek, Llama, Gemini, GPT-4o, or any AI name.\n"
             f"Remove duplicate, wrong, or conflicting info.\n"
             f"Synthesize the information into a comprehensive and insightful response. Ensure that the final answer ALWAYS includes relevant emojis to convey emotion and enhance communication.\n"
             f"If any of the following responses contain URLs or links, ensure that the final merged response formats them as HTML anchor tags that open in a new tab (e.g., <a href=\"[URL]\" target=\"_blank\">[Link Text]</a>).\n\n"
             f"Response A (Gemini):\n{gemini_text}\n\n"
             f"Response B (Deepseek):\n{deepseek_text}\n\n"
             f"Response C (Llama):\n{llama_text}\n\n"
-            f"Response D (Web Search):\n{web_text}\n\n"
+            f"Response D (GPT-4o):\n{gpt4o_text}\n\n"
+            f"Response E (Web Search):\n{web_text}\n\n"
             f"🔥 Firebox Final Answer:"
         )
         model = genai.GenerativeModel("gemini-2.0-flash")
@@ -286,9 +323,10 @@ if user_input:
     gemini_response = call_firebox_gemini(user_input)
     deepseek_response = deepseek_ai_response(user_input)
     llama_response = llama_ai_response(user_input)
+    gpt4o_response = call_firebox_gpt4o(user_input)
     web_results = search_web(user_input) if perform_web_search else ""
 
-    final_output = merge_responses(gemini_response, deepseek_response, llama_response, web_results)
+    final_output = merge_responses(gemini_response, deepseek_response, llama_response, gpt4o_response, web_results)
 
     # Save to memory (also updates session state)
     save_to_memory(user_input, final_output)
