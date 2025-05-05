@@ -155,7 +155,7 @@ def call_firebox_grok(prompt):
             "Content-Type": "application/json"
         }
         data = {
-            "model": "grok-3",  # Or another Grok model if available
+            "model": "grok-1",  # Or another Grok model if available
             "messages": [{"role": "user", "content": prompt}]
         }
         response = requests.post(f"{GROK_BASE_URL}/chat/completions", headers=headers, json=data)
