@@ -184,30 +184,6 @@ New Prompt: {prompt}
     except Exception as e:
         return f"❌ Gemini API error: {e}"
 
-# === GPT-4o Mini Call ===
-import requests
-
-def call_firebox_gpt4o(prompt):
-    api_key = "e5b7931e7e214e1eb43ba7182d7a2176"
-    url = "https://api.aimlapi.com/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "model": "gpt-3.5turbo",  # Replace with your desired model ID
-        "messages": [
-            {"role": "system", "content": "You are Firebox, a helpful AI assistant."},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.7
-    }
-
-    response = requests.post(url, headers=headers, json=data)
-    response_data = response.json()
-
-    return response_data["choices"][0]["message"]["content"]
-
 # === Merge Responses ===
 def merge_responses(gemini_text, deepseek_text, llama_text, grok_text, gpt4o_text, web_text):
     try:
@@ -221,7 +197,6 @@ def merge_responses(gemini_text, deepseek_text, llama_text, grok_text, gpt4o_tex
             f"Response B (Deepseek):\n{deepseek_text}\n\n"
             f"Response C (Llama):\n{llama_text}\n\n"
             f"Response D (Grok):\n{grok_text}\n\n"
-            f"Response E (GPT-4o):\n{gpt4o_text}\n\n"
             f"Response F (Web Search):\n{web_text}\n\n"
             f"🔥 Firebox Final Answer:"
         )
