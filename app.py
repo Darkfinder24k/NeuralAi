@@ -188,7 +188,7 @@ New Prompt: {prompt}
 def call_firebox_gpt4o(prompt):
     # try:
     response = openai.ChatCompletion.create(
-        model="gpt-4o",
+        model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": "You are Firebox, a helpful AI assistant."},
             {"role": "user", "content": prompt}
