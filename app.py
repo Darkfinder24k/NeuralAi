@@ -45,6 +45,10 @@ except ImportError:
     st.error("Error: 'api.py' file not found or import failed. Ensure it exists in the same directory and contains API keys.")
     st.stop()
 
+# === Configure Grok API ===
+GROK_API_KEY = "xai-BECc2rFNZk6qHEWbyzlQo1T1MvnM1bohcMKVS2r3BXcfjzBap1Ki4l7v7kAKkZVGTpaMZlXekSRq7HHE"
+GROK_BASE_URL = "https://api.x.ai/v1"
+
 # === Configure Gemini ===
 try:
     genai.configure(api_key=gemini_api)
@@ -143,6 +147,25 @@ def llama_ai_response(prompt):
     except (KeyError, json.JSONDecodeError) as e:
         return f"❌ Error processing Llama API response: {e}"
 
+# === Grok API Call ===
+def call_firebox_grok(prompt):
+    try:
+        headers = {
+            "Authorization": f"Bearer {GROK_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": "grok-1",  # Or another Grok model if available
+            "messages": [{"role": "user", "content": prompt}]
+        }
+        response = requests.post(f"{GROK_BASE_URL}/chat/completions", headers=headers, json=data)
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
+    except requests.exceptions.RequestException as e:
+        return f"❌ Grok API error: {e}"
+    except (KeyError, json.JSONDecodeError) as e:
+        return f"❌ Error processing Grok response: {e}"
+
 # === Gemini Prompt Call ===
 def call_firebox_gemini(prompt):
     model = genai.GenerativeModel("gemini-2.0-flash")
@@ -182,19 +205,20 @@ def call_firebox_gpt4o(prompt):
         return f"❌ Error calling GPT-4o Mini: {e}"
 
 # === Merge Responses ===
-def merge_responses(gemini_text, deepseek_text, llama_text, gpt4o_text, web_text):
+def merge_responses(gemini_text, deepseek_text, llama_text, grok_text, gpt4o_text, web_text):
     try:
         prompt = (
-            f"You are Firebox AI. You will now intelligently merge five responses into one final, polished answer.\n"
-            f"Do not mention DeepSeek, Llama, Gemini, GPT-4o, or any AI name.\n"
+            f"You are Firebox AI. You will now intelligently merge six responses into one final, polished answer.\n"
+            f"Do not mention DeepSeek, Llama, Grok, Gemini, GPT-4o, or any AI name.\n"
             f"Remove duplicate, wrong, or conflicting info.\n"
             f"Synthesize the information into a comprehensive and insightful response. Ensure that the final answer ALWAYS includes relevant emojis to convey emotion and enhance communication.\n"
             f"If any of the following responses contain URLs or links, ensure that the final merged response formats them as HTML anchor tags that open in a new tab (e.g., <a href=\"[URL]\" target=\"_blank\">[Link Text]</a>).\n\n"
             f"Response A (Gemini):\n{gemini_text}\n\n"
             f"Response B (Deepseek):\n{deepseek_text}\n\n"
             f"Response C (Llama):\n{llama_text}\n\n"
-            f"Response D (GPT-4o):\n{gpt4o_text}\n\n"
-            f"Response E (Web Search):\n{web_text}\n\n"
+            f"Response D (Grok):\n{grok_text}\n\n"
+            f"Response E (GPT-4o):\n{gpt4o_text}\n\n"
+            f"Response F (Web Search):\n{web_text}\n\n"
             f"🔥 Firebox Final Answer:"
         )
         model = genai.GenerativeModel("gemini-2.0-flash")
@@ -308,10 +332,11 @@ if user_input:
     gemini_response = call_firebox_gemini(user_input)
     deepseek_response = deepseek_ai_response(user_input)
     llama_response = llama_ai_response(user_input)
+    grok_response = call_firebox_grok(user_input)
     gpt4o_response = call_firebox_gpt4o(user_input)
     web_results = search_web(user_input) if perform_web_search else ""
 
-    final_output = merge_responses(gemini_response, deepseek_response, llama_response, gpt4o_response, web_results)
+    final_output = merge_responses(gemini_response, deepseek_response, llama_response, grok_response, gpt4o_response, web_results)
 
     # Save to memory (also updates session state)
     save_to_memory(user_input, final_output)
@@ -319,15 +344,3 @@ if user_input:
     # Display current prompt and response at the top
     st.markdown(f"**You:** {user_input}")
     st.markdown(f"**Firebox:** {final_output}")
-
-    # We no longer explicitly clear the input field's session state here
-
-# Simulate a button click when the icon is interacted with (this is a basic simulation)
-def trigger_web_search():
-    st.session_state['web_search_clicked'] = True
-    st.rerun()
-
-# You would ideally need a more robust way to handle clicks on the pseudo-element in CSS.
-# This basic simulation might not work perfectly for direct interaction.
-# A more advanced approach might involve JavaScript injection, which is generally discouraged in Streamlit.
-# For a truly interactive icon, a separate Streamlit button styled as an icon might be more reliable.
