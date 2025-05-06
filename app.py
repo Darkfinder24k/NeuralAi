@@ -180,11 +180,11 @@ Answer in those languages in which the user is talking to you but you MUST suppo
         model = genai.GenerativeModel(model_name)
         response = model.generate_content(final_prompt, stream=is_premium)
         if is_premium:
-            full_response = ""
-            for chunk in response:
-                full_response += chunk.text
-                yield full_response
-            return full_response
+            try:
+                for chunk in response:
+                    yield chunk.text
+            except Exception as e:
+                yield f"⚠️ Gemini streaming error: {e}"
         else:
             return "".join([p.text for p in response.parts])
     except Exception as e:
@@ -224,44 +224,52 @@ def generate_image(prompt="A simple abstract design"):
 
 # === Premium Merge Responses ===
 def premium_merge_responses(gemini_text, deepseek_texts, grok_text, web_text):
-    try:
-        prompt = (
-            f"You are Firebox AI, a premium ultimate assistant. You will now expertly merge multiple responses into one exceptional, insightful answer.\n"
-            f"Do not mention DeepSeek, or Gemini.\n"
-            f"Remove any redundancy, inaccuracies, or less relevant information, focusing on the most impactful details from all sources.\n"
-            f"Synthesize the information into a highly comprehensive, nuanced, and engaging response. Ensure that the final answer ALWAYS includes relevant and expressive emojis to convey emotion and enhance communication.\n"
-            f"If any of the following responses contain URLs or links, ensure that the final merged response formats them as high-quality HTML anchor tags that open in a new tab (e.g., <a href=\"[URL]\" target=\"_blank\">[Link Text]</a>), providing clear and concise link descriptions.\n\n"
-            f"**Gemini Response:**\n{gemini_text}\n\n"
-            f"**Deepseek Responses:**\n{' '.join(deepseek_texts) if isinstance(deepseek_texts, list) else deepseek_texts}\n\n"
-            f"**Grok Response:**\n{grok_text}\n\n"
-            f"**Premium Web Search Results:**\n{web_text}\n\n"
-            f"🔥 **Firebox Premium Final Answer:**"
-        )
-        model = genai.GenerativeModel("gemini-2.0-flash") # Using a faster model for premium merging
-        response = model.generate_content(prompt)
-        return "".join([p.text for p in response.parts])
-    except Exception as e:
-        return f"❌ Premium merge error: {e}"
+    final_response_parts = []
+    if isinstance(gemini_text, str):
+        final_response_parts.append(f"**Gemini:** {gemini_text}\n\n")
+    else:
+        final_response_parts.append("⚠️ **Gemini:** Encountered an issue.\n\n")
+
+    if isinstance(deepseek_texts, list):
+        final_response_parts.append(f"**DeepSeek:** {' '.join(deepseek_texts)}\n\n")
+    elif isinstance(deepseek_texts, str):
+        final_response_parts.append(f"**DeepSeek:** {deepseek_texts}\n\n")
+    else:
+        final_response_parts.append("⚠️ **DeepSeek:** Encountered an issue.\n\n")
+
+    if isinstance(grok_text, str):
+        final_response_parts.append(f"**Grok:** {grok_text}\n\n")
+    else:
+        final_response_parts.append("⚠️ **Grok:** Encountered an issue.\n\n")
+
+    if web_text:
+        final_response_parts.append(f"**Web Search:** {web_text}\n\n")
+
+    if final_response_parts:
+        return "🔥 **Firebox Premium Analysis:**\n" + "".join(final_response_parts) + "\nI've presented the raw outputs from each available source. Some encountered issues, which are noted. Further synthesis will be available once all services are functioning correctly. 👍"
+    else:
+        return "⚠️ **Firebox Premium:** All underlying services encountered errors. Please check their status."
 
 # === Basic Merge Responses (Restricted Facilities) ===
 def merge_responses(gemini_text, deepseek_text, web_text):
-    try:
-        prompt = (
-            f"You are Firebox AI. You will now intelligently merge two responses into one final, polished answer.\n"
-            f"Do not mention DeepSeek or Gemini.\n"
-            f"Remove duplicate, wrong, or conflicting info.\n"
-            f"Synthesize the information into a comprehensive and insightful response. Ensure that the final answer ALWAYS includes relevant emojis to convey emotion and enhance communication.\n"
-            f"Web search and Grok capabilities are restricted in the standard version.\n"
-            f"If any of the following responses contain URLs or links, ensure that the final merged response formats them as HTML anchor tags that open in a new tab (e.g., <a href=\"[URL]\" target=\"_blank\">[Link Text]</a>).\n\n"
-            f"Response A (Gemini):\n{gemini_text}\n\n"
-            f"Response B (Deepseek):\n{deepseek_text}\n\n"
-            f"🔥 Firebox Final Answer:"
-        )
-        model = genai.GenerativeModel("gemini-1.5-pro")
-        response = model.generate_content(prompt)
-        return "".join([p.text for p in response.parts])
-    except Exception as e:
-        return f"❌ Merge error: {e}"
+    final_response_parts = []
+    if isinstance(gemini_text, str):
+        final_response_parts.append(f"**Gemini:** {gemini_text}\n\n")
+    else:
+        final_response_parts.append("⚠️ **Gemini:** Encountered an issue.\n\n")
+
+    if isinstance(deepseek_text, str):
+        final_response_parts.append(f"**DeepSeek:** {deepseek_text}\n\n")
+    else:
+        final_response_parts.append("⚠️ **DeepSeek:** Encountered an issue.\n\n")
+
+    if web_text:
+        final_response_parts.append(f"**Web Search:** {web_text}\n\n")
+
+    if final_response_parts:
+        return "🔥 **Firebox Standard Analysis:**\n" + "".join(final_response_parts) + "\nI've presented the raw outputs from each available source. Some encountered issues, which are noted. A more integrated answer will be provided when all services are stable. 👍"
+    else:
+        return "⚠️ **Firebox Standard:** Both Gemini and DeepSeek encountered errors. Please check their status."
 
 # === Web Search ===
 def search_web(query):
@@ -335,7 +343,7 @@ div.stTextInput > div > input {
     font-size: 14px;
     border-radius: 10px;
     z-index: 1001;
-    /* Ensure footer is on top of the input if desired */
+/* Ensure footer is on top of the input if desired */
 }
 .premium-badge {
     background-color: #ffd700; /* Gold color */
