@@ -339,36 +339,43 @@ st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="fo
 
 # === Icon Click Handling ===
 if st.session_state.get('fixed_input'):
-    if st.session_state.get('web_search_clicked'):
-        perform_web_search = True
-        st.session_state['web_search_clicked'] = False
-    else:
-        perform_web_search = False
+    user_input_lower = st.session_state.get('fixed_input').lower()
+    perform_web_search = False
+    perform_image_gen = False
 
-    if st.session_state.get('image_gen_clicked'):
+    if "(web search)" in user_input_lower:
+        perform_web_search = True
+        processed_input = user_input_lower.replace("(web search)", "").strip()
+    elif "(generate an image)" in user_input_lower:
         perform_image_gen = True
-        st.session_state['image_gen_clicked'] = False
+        processed_input = user_input_lower.replace("(generate an image)", "").strip()
     else:
-        perform_image_gen = False
+        processed_input = st.session_state.get('fixed_input')
 
     if perform_image_gen:
-        image_url = generate_image(st.session_state.get('fixed_input'))
+        image_url = generate_image(processed_input)
         st.session_state['image_url'] = image_url
-        st.image(image_url, caption=st.session_state.get('fixed_input'), use_column_width=True)
+        st.image(image_url, caption=processed_input, use_column_width=True)
         save_to_memory(st.session_state.get('fixed_input'), f"Image generated: {image_url}")
-    else:
-        gemini_response = call_firebox_gemini(st.session_state.get('fixed_input'))
-        deepseek_response = deepseek_ai_response(st.session_state.get('fixed_input'))
-        llama_response = llama_ai_response(st.session_state.get('fixed_input'))
-        grok_response = call_firebox_grok(st.session_state.get('fixed_input'))
-        web_results = search_web(st.session_state.get('fixed_input')) if perform_web_search else ""
+    elif perform_web_search:
+        web_results = search_web(processed_input)
+        gemini_response = call_firebox_gemini(processed_input)
+        deepseek_response = deepseek_ai_response(processed_input)
+        llama_response = llama_ai_response(processed_input)
+        grok_response = call_firebox_grok(processed_input)
 
         final_output = merge_responses(gemini_response, deepseek_response, llama_response, grok_response, web_results)
-
-        # Save to memory (also updates session state)
         save_to_memory(st.session_state.get('fixed_input'), final_output)
+        st.markdown(f"**You:** {st.session_state.get('fixed_input')}")
+        st.markdown(f"**Firebox:** {final_output}")
+    else:
+        gemini_response = call_firebox_gemini(processed_input)
+        deepseek_response = deepseek_ai_response(processed_input)
+        llama_response = llama_ai_response(processed_input)
+        grok_response = call_firebox_grok(processed_input)
 
-        # Display current prompt and response at the top
+        final_output = merge_responses(gemini_response, deepseek_response, llama_response, grok_response, "")
+        save_to_memory(st.session_state.get('fixed_input'), final_output)
         st.markdown(f"**You:** {st.session_state.get('fixed_input')}")
         st.markdown(f"**Firebox:** {final_output}")
 
@@ -384,7 +391,7 @@ js_script = """
             textInput.focus();
             setTimeout(() => {
                 Streamlit.setSessionState({'web_search_clicked': true});
-                Streamlit.setSessionState({'fixed_input': textInput.value});
+                Streamlit.setSessionState({'fixed_input': '(web search) ' + textInput.value});
                 Streamlit.rerun();
             }, 100);
         });
@@ -395,7 +402,7 @@ js_script = """
             textInput.focus();
             setTimeout(() => {
                 Streamlit.setSessionState({'image_gen_clicked': true});
-                Streamlit.setSessionState({'fixed_input': textInput.value});
+                Streamlit.setSessionState({'fixed_input': '(generate an image) ' + textInput.value});
                 Streamlit.rerun();
             }, 100);
         });
