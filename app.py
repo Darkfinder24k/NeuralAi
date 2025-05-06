@@ -283,14 +283,14 @@ def premium_merge_responses(gemini_text, deepseek_texts, llama_text, grok_text, 
         return f"❌ Premium merge error: {e}"
 
 # === Basic Merge Responses (Restricted Facilities) ===
-def merge_responses(gemini_text, deepseek_text, llama_text, grok_text, web_text):
+def merge_responses(gemini_text, deepseek_text, llama_text, web_text):
     try:
         prompt = (
-            f"You are Firebox AI. You will now intelligently merge four responses into one final, polished answer.\n"
+            f"You are Firebox AI. You will now intelligently merge three responses into one final, polished answer.\n"
             f"Do not mention DeepSeek, Llama, or Gemini.\n"
             f"Remove duplicate, wrong, or conflicting info.\n"
             f"Synthesize the information into a comprehensive and insightful response. Ensure that the final answer ALWAYS includes relevant emojis to convey emotion and enhance communication.\n"
-            f"Web search facilities are restricted in the standard version.\n"
+            f"Web search and Grok capabilities are restricted in the standard version.\n"
             f"If any of the following responses contain URLs or links, ensure that the final merged response formats them as HTML anchor tags that open in a new tab (e.g., <a href=\"[URL]\" target=\"_blank\">[Link Text]</a>).\n\n"
             f"Response A (Gemini):\n{gemini_text}\n\n"
             f"Response B (Deepseek):\n{deepseek_text}\n\n"
@@ -327,7 +327,7 @@ def premium_search_web(query):
 # === Custom CSS for Fixed Bottom Input ===
 custom_css = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');');
 html, body {
     font-family: 'Poppins', sans-serif;
     background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
@@ -393,27 +393,18 @@ st.markdown(custom_css, unsafe_allow_html=True)
 # === Streamlit UI ===
 st.title("🔥 Firebox AI – Ultimate Assistant")
 
-# Input for Secret Code
-if not st.session_state.get('secret_code_entered'):
-    secret_code_input = st.text_input("Enter the secret code to unlock premium Firebox AI:", type="password")
-    if secret_code_input:
-        if secret_code_input == SECRET_CODE_PREMIUM:
-            st.session_state['secret_code_entered'] = True
-            st.session_state['is_premium'] = True
-            st.rerun()
-        else:
-            st.error("Incorrect secret code.")
-    st.stop()
+premium_code_entered = st.sidebar.text_input("Enter Premium Code:", type="password")
+if premium_code_entered == SECRET_CODE_PREMIUM:
+    st.session_state['is_premium'] = True
+else:
+    st.session_state['is_premium'] = False
 
 # Display Premium Badge
 if st.session_state.get('is_premium'):
-    st.markdown('<span class="premium-badge">Premium</span>', unsafe_allow_html=True)
-
-# Display information about standard vs. premium
-if not st.session_state.get('is_premium'):
-    st.info("Standard Version: Utilizes Gemini 1.5 Pro, Grok-1. Some facilities like advanced image generation and extensive web search are restricted.")
+    st.sidebar.markdown('<span class="premium-badge">Premium</span>', unsafe_allow_html=True)
 else:
-    st.info("Premium Version Unlocked: Full access with enhanced capabilities, utilizing Gemini 2.0 Flash, Grok-3, advanced image generation, and extensive web search.")
+    st.sidebar.info("Standard Version: Utilizes Gemini 1.5 Pro, Grok-1. Some facilities like advanced image generation and extensive web search are restricted.")
+    st.sidebar.info("Enter the premium code in the sidebar to unlock all features and enhanced models.")
 
 # Move the chat history display to the top
 display_chat_history()
@@ -464,7 +455,6 @@ if st.session_state.get('fixed_input'):
                 gemini_response = call_firebox_gemini(processed_input)
                 deepseek_response = deepseek_ai_response(processed_input)
                 llama_response = llama_ai_response(processed_input)
-                grok_response = call_firebox_grok(processed_input)
                 final_output = merge_responses(gemini_response, deepseek_response, llama_response, "", web_results) # Grok removed from standard merge
             save_to_memory(st.session_state.get('fixed_input'), final_output)
             st.markdown(f"**Firebox:** {final_output}")
