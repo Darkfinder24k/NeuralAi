@@ -29,6 +29,8 @@ if 'is_premium' not in st.session_state:
     st.session_state['is_premium'] = False
 if 'secret_code_entered' not in st.session_state:
     st.session_state['secret_code_entered'] = False
+if 'premium_slider' not in st.session_state:
+    st.session_state['premium_slider'] = False
 
 # === Secret Code for Premium ===
 SECRET_CODE_PREMIUM = "firebox_alpha_pro_2025"
@@ -257,7 +259,7 @@ def generate_advanced_image(prompt="A photorealistic scene of a nebula with vibr
 
 # === Basic Image Generation (Restricted Facility) ===
 def generate_image(prompt="A simple abstract design"):
-    st.warning("Image generation is a premium feature. Enter the secret code to unlock it. 🎨")
+    st.warning("Image generation is a premium feature. Enter the premium code in the sidebar to unlock it. 🎨")
     return None
 
 # === Premium Merge Responses ===
@@ -305,7 +307,7 @@ def merge_responses(gemini_text, deepseek_text, llama_text, web_text):
 
 # === Web Search ===
 def search_web(query):
-    st.warning("Web search is a premium feature. Enter the secret code to unlock it. 🌐")
+    st.warning("Web search is a premium feature. Enter the premium code in the sidebar to unlock it. 🌐")
     return ""
 
 # === Premium Web Search (More Results) ===
@@ -327,7 +329,7 @@ def premium_search_web(query):
 # === Custom CSS for Fixed Bottom Input ===
 custom_css = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
 html, body {
     font-family: 'Poppins', sans-serif;
     background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
@@ -386,6 +388,12 @@ div.stTextInput > div > input {
     vertical-align: middle;
     margin-left: 0.5em;
 }
+.sidebar-content {
+    padding: 20px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
 </style>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
@@ -393,18 +401,20 @@ st.markdown(custom_css, unsafe_allow_html=True)
 # === Streamlit UI ===
 st.title("🔥 Firebox AI – Ultimate Assistant")
 
-premium_code_entered = st.sidebar.text_input("Enter Premium Code:", type="password")
-if premium_code_entered == SECRET_CODE_PREMIUM:
-    st.session_state['is_premium'] = True
-else:
-    st.session_state['is_premium'] = False
-
-# Display Premium Badge
-if st.session_state.get('is_premium'):
-    st.sidebar.markdown('<span class="premium-badge">Premium</span>', unsafe_allow_html=True)
-else:
-    st.sidebar.info("Standard Version: Utilizes Gemini 1.5 Pro, Grok-1. Some facilities like advanced image generation and extensive web search are restricted.")
-    st.sidebar.info("Enter the premium code in the sidebar to unlock all features and enhanced models.")
+with st.sidebar:
+    st.session_state['premium_slider'] = st.checkbox("Open Premium Access")
+    if st.session_state['premium_slider']:
+        premium_code_entered = st.text_input("Enter Premium Code:", type="password")
+        if premium_code_entered == SECRET_CODE_PREMIUM:
+            st.session_state['is_premium'] = True
+            st.sidebar.markdown('<span class="premium-badge">Premium Unlocked</span>', unsafe_allow_html=True)
+        elif premium_code_entered:
+            st.sidebar.error("Incorrect code.")
+        else:
+            st.sidebar.info("Enter the premium code to unlock all features and enhanced models.")
+    else:
+        st.sidebar.info("Standard Version: Utilizes Gemini 1.5 Pro, Grok-1. Some facilities like advanced image generation and extensive web search are restricted.")
+        st.sidebar.info("Check 'Open Premium Access' to enter the premium code.")
 
 # Move the chat history display to the top
 display_chat_history()
