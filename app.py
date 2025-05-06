@@ -159,7 +159,7 @@ def call_firebox_grok(prompt):
             "Content-Type": "application/json"
         }
         data = {
-            "model": "grok-1",  # Or another Grok model if available
+            "model": "grok-3",  # Or another Grok model if available
             "messages": [{"role": "user", "content": prompt}]
         }
         response = requests.post(f"{GROK_BASE_URL}/chat/completions", headers=headers, json=data)
@@ -172,7 +172,7 @@ def call_firebox_grok(prompt):
 
 # === Gemini Prompt Call ===
 def call_firebox_gemini(prompt):
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-2.5-pro")
     try:
         # No need to pass past conversation if we want a fresh start each time
         final_prompt = f"""
@@ -230,7 +230,7 @@ def merge_responses(gemini_text, deepseek_text, llama_text, grok_text, web_text)
             f"Response E (Web Search):\n{web_text}\n\n"
             f"🔥 Firebox Final Answer:"
         )
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-2.5-pro")
         response = model.generate_content(prompt)
         return "".join([p.text for p in response.parts])
     except Exception as e:
