@@ -144,46 +144,6 @@ def deepseek_ai_response(prompt, is_premium=False):
     except (KeyError, json.JSONDecodeError) as e:
         return f"❌ Error processing DeepSeek response: {e}"
 
-# === Llama API Integration ===
-def llama_ai_response(prompt, is_premium=False):
-    model_name = "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo"
-    try:
-        url = "https://api.aimlapi.com/v1/chat/completions"
-        headers = {
-            "Authorization": "Bearer e5b7931e7e214e1eb43ba7182d7a2176",  # Ensure this is the correct API token
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": model_name,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-            "stream": is_premium, # Premium: Enable streaming
-        }
-        response = requests.post(url, headers=headers, json=data, stream=is_premium)
-        response.raise_for_status()  # Raise HTTPError for bad responses
-        if is_premium:
-            full_response = ""
-            for chunk in response.iter_lines():
-                if chunk:
-                    try:
-                        decoded_chunk = chunk.decode('utf-8').split("data: ")[1]
-                        if decoded_chunk == "[DONE]":
-                            break
-                        response_part = json.loads(decoded_chunk)['choices'][0]['delta'].get('content', '')
-                        full_response += response_part
-                        yield full_response
-                    except json.JSONDecodeError:
-                        continue
-            return full_response
-        else:
-            response_data = response.json()
-            return response_data['choices'][0]['message']['content']
-    except requests.exceptions.RequestException as e:
-        return "It seems your words have run dry, your tokens exhausted... but don't worry, I'm still here, ready to pick up where we left off whenever you are."
-    except (KeyError, json.JSONDecodeError) as e:
-        return f"❌ Error processing Llama API response: {e}"
-
 # === Grok API Call ===
 def call_firebox_grok(prompt, is_premium=False):
     model_name = "grok-3" if is_premium else "grok-1"
@@ -263,17 +223,16 @@ def generate_image(prompt="A simple abstract design"):
     return None
 
 # === Premium Merge Responses ===
-def premium_merge_responses(gemini_text, deepseek_texts, llama_text, grok_text, web_text):
+def premium_merge_responses(gemini_text, deepseek_texts, grok_text, web_text):
     try:
         prompt = (
             f"You are Firebox AI, a premium ultimate assistant. You will now expertly merge multiple responses into one exceptional, insightful answer.\n"
-            f"Do not mention DeepSeek, Llama, Grok, or Gemini.\n"
+            f"Do not mention DeepSeek, or Gemini.\n"
             f"Remove any redundancy, inaccuracies, or less relevant information, focusing on the most impactful details from all sources.\n"
             f"Synthesize the information into a highly comprehensive, nuanced, and engaging response. Ensure that the final answer ALWAYS includes relevant and expressive emojis to convey emotion and enhance communication.\n"
             f"If any of the following responses contain URLs or links, ensure that the final merged response formats them as high-quality HTML anchor tags that open in a new tab (e.g., <a href=\"[URL]\" target=\"_blank\">[Link Text]</a>), providing clear and concise link descriptions.\n\n"
             f"**Gemini Response:**\n{gemini_text}\n\n"
             f"**Deepseek Responses:**\n{' '.join(deepseek_texts) if isinstance(deepseek_texts, list) else deepseek_texts}\n\n"
-            f"**Llama Response:**\n{llama_text}\n\n"
             f"**Grok Response:**\n{grok_text}\n\n"
             f"**Premium Web Search Results:**\n{web_text}\n\n"
             f"🔥 **Firebox Premium Final Answer:**"
@@ -285,18 +244,17 @@ def premium_merge_responses(gemini_text, deepseek_texts, llama_text, grok_text, 
         return f"❌ Premium merge error: {e}"
 
 # === Basic Merge Responses (Restricted Facilities) ===
-def merge_responses(gemini_text, deepseek_text, llama_text, web_text):
+def merge_responses(gemini_text, deepseek_text, web_text):
     try:
         prompt = (
-            f"You are Firebox AI. You will now intelligently merge three responses into one final, polished answer.\n"
-            f"Do not mention DeepSeek, Llama, or Gemini.\n"
+            f"You are Firebox AI. You will now intelligently merge two responses into one final, polished answer.\n"
+            f"Do not mention DeepSeek or Gemini.\n"
             f"Remove duplicate, wrong, or conflicting info.\n"
             f"Synthesize the information into a comprehensive and insightful response. Ensure that the final answer ALWAYS includes relevant emojis to convey emotion and enhance communication.\n"
             f"Web search and Grok capabilities are restricted in the standard version.\n"
             f"If any of the following responses contain URLs or links, ensure that the final merged response formats them as HTML anchor tags that open in a new tab (e.g., <a href=\"[URL]\" target=\"_blank\">[Link Text]</a>).\n\n"
             f"Response A (Gemini):\n{gemini_text}\n\n"
             f"Response B (Deepseek):\n{deepseek_text}\n\n"
-            f"Response C (Llama):\n{llama_text}\n\n"
             f"🔥 Firebox Final Answer:"
         )
         model = genai.GenerativeModel("gemini-1.5-pro")
@@ -376,7 +334,8 @@ div.stTextInput > div > input {
     padding: 10px;
     font-size: 14px;
     border-radius: 10px;
-    z-index: 1001; /* Ensure footer is on top of the input if desired */
+    z-index: 1001;
+    /* Ensure footer is on top of the input if desired */
 }
 .premium-badge {
     background-color: #ffd700; /* Gold color */
@@ -457,48 +416,41 @@ if st.session_state.get('fixed_input'):
                 web_results = premium_search_web(processed_input)
                 gemini_response = call_firebox_gemini(processed_input, is_premium=True)
                 deepseek_response = deepseek_ai_response(processed_input, is_premium=True)
-                llama_response = llama_ai_response(processed_input, is_premium=True)
                 grok_response = call_firebox_grok(processed_input, is_premium=True)
-                final_output = premium_merge_responses(gemini_response, deepseek_response, llama_response, grok_response, web_results)
+                final_output = premium_merge_responses(gemini_response, deepseek_response, grok_response, web_results)
             else:
                 web_results = search_web(processed_input)
                 gemini_response = call_firebox_gemini(processed_input)
                 deepseek_response = deepseek_ai_response(processed_input)
-                llama_response = llama_ai_response(processed_input)
-                final_output = merge_responses(gemini_response, deepseek_response, llama_response, web_results) # Grok removed from standard merge
+                final_output = merge_responses(gemini_response, deepseek_response, web_results) # Grok removed from standard merge
             save_to_memory(st.session_state.get('fixed_input'), final_output)
             st.markdown(f"**Firebox:** {final_output}")
     else:
         with st.spinner("Thinking... 🤔"):
             if st.session_state.get('is_premium'):
                 gemini_response_stream = call_firebox_gemini(processed_input, is_premium=True)
-                llama_response_stream = llama_ai_response(processed_input, is_premium=True)
                 deepseek_response = deepseek_ai_response(processed_input, is_premium=True)
                 grok_response = call_firebox_grok(processed_input, is_premium=True)
 
                 response_area = st.empty()
                 full_gemini_response = ""
-                full_llama_response = ""
 
                 # Display streaming responses
-                for gemini_chunk, llama_chunk in zip(gemini_response_stream, llama_response_stream):
+                for gemini_chunk in gemini_response_stream:
                     full_gemini_response += gemini_chunk
-                    full_llama_response += llama_chunk
-                    combined_response = f"**Gemini:** {full_gemini_response}\n\n**Llama:** {full_llama_response}"
-                    response_area.markdown(combined_response)
+                    response_area.markdown(f"**Gemini:** {full_gemini_response}")
 
                 if isinstance(deepseek_response, list):
-                    final_output = premium_merge_responses(full_gemini_response, deepseek_response, full_llama_response, grok_response, "")
+                    final_output = premium_merge_responses(full_gemini_response, deepseek_response, grok_response, "")
                 else:
-                    final_output = premium_merge_responses(full_gemini_response, deepseek_response, full_llama_response, grok_response, "")
+                    final_output = premium_merge_responses(full_gemini_response, deepseek_response, grok_response, "")
                 response_area.markdown(f"**Firebox:** {final_output}")
                 save_to_memory(st.session_state.get('fixed_input'), final_output)
 
             else:
                 gemini_response = call_firebox_gemini(processed_input)
                 deepseek_response = deepseek_ai_response(processed_input)
-                llama_response = llama_ai_response(processed_input)
-                final_output = merge_responses(gemini_response, deepseek_response, llama_response, "") # Grok and web search removed from standard
+                final_output = merge_responses(gemini_response, deepseek_response, "") # Grok and web search removed from standard
                 save_to_memory(st.session_state.get('fixed_input'), final_output)
                 st.markdown(f"**Firebox:** {final_output}")
 
