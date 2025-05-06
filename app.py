@@ -280,36 +280,27 @@ div.stTextInput {
     background-color: rgba(0, 0, 0, 0.3); /* Optional background */
     border-radius: 15px;
     border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex; /* Use flexbox to position input and icons */
+    align-items: center; /* Vertically align items */
+}
+div.stTextInput > label {
+    flex-grow: 1; /* Allow input label to take remaining space */
 }
 div.stTextInput > label > div {
     color: #fff !important; /* Style the input label */
 }
-div.stTextInput > div > input {
+div.stTextInput > label > div > input {
     background-color: transparent !important;
     color: #fff !important;
     border: none !important;
     border-radius: 0 !important;
     padding-left: 0 !important;
 }
-div.stTextInput::after {
-    content: "🌐"; /* Unicode for a globe icon */
-    position: absolute;
-    bottom: 18px; /* Adjust vertical position */
-    right: 45px; /* Adjust horizontal position for web search icon */
-    font-size: 20px; /* Adjust icon size */
-    color: #f7971e; /* Icon color */
+.icon-button {
     cursor: pointer;
-    z-index: 1001; /* Ensure icon is clickable */
-}
-div.stTextInput::before {
-    content: "🖼️"; /* Unicode for an image icon */
-    position: absolute;
-    bottom: 18px; /* Adjust vertical position */
-    right: 15px; /* Adjust horizontal position for image gen icon */
-    font-size: 20px; /* Adjust icon size */
-    color: #f7971e; /* Icon color */
-    cursor: pointer;
-    z-index: 1001; /* Ensure icon is clickable */
+    font-size: 20px;
+    color: #f7971e;
+    margin-left: 10px; /* Space between input and icons */
 }
 #firebox-footer {
     position: fixed;
@@ -326,7 +317,7 @@ div.stTextInput::before {
 }
 </style>
 """
-st.markdown(custom_css, unsafe_allow_html=True)
+st.markdown(f"{custom_css}", unsafe_allow_html=True)
 
 # === Streamlit UI ===
 st.title("🔥 Firebox AI – Ultimate Assistant")
@@ -334,8 +325,14 @@ st.title("🔥 Firebox AI – Ultimate Assistant")
 # Move the chat history display to the top
 display_chat_history()
 
-# Fixed input at the bottom
-user_input = st.text_input("Your Query:", key="fixed_input")
+# Fixed input at the bottom with icons
+col1, col2, col3 = st.columns([10, 1, 1])
+with col1:
+    user_input = st.text_input("Your Query:", key="fixed_input", label_visibility="collapsed")
+with col2:
+    st.markdown('<div class="icon-button" id="web-search-icon">🌐</div>', unsafe_allow_html=True)
+with col3:
+    st.markdown('<div class="icon-button" id="image-gen-icon">🖼️</div>', unsafe_allow_html=True)
 
 # Footer message
 st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="font-weight: bold;">Help it improve.</span></div>', unsafe_allow_html=True)
@@ -344,11 +341,13 @@ st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="fo
 if st.session_state.get('fixed_input'):
     if st.session_state.get('web_search_clicked'):
         perform_web_search = True
+        st.session_state['web_search_clicked'] = False
     else:
         perform_web_search = False
 
     if st.session_state.get('image_gen_clicked'):
         perform_image_gen = True
+        st.session_state['image_gen_clicked'] = False
     else:
         perform_image_gen = False
 
@@ -376,29 +375,31 @@ if st.session_state.get('fixed_input'):
 # === JavaScript to handle icon clicks ===
 js_script = """
 <script>
-    const textInput = document.querySelector('div.stTextInput > div > input');
-    const webSearchIcon = document.querySelector('div.stTextInput::after');
-    const imageGenIcon = document.querySelector('div.stTextInput::before');
+    const textInput = document.querySelector('div.stTextInput > label > div > input');
+    const webSearchIcon = document.getElementById('web-search-icon');
+    const imageGenIcon = document.getElementById('image-gen-icon');
 
-    webSearchIcon.addEventListener('click', () => {
-        textInput.focus();
-        setTimeout(() => {
-            textInput.value = textInput.value;
-            Streamlit.setSessionState({'web_search_clicked': true});
-            Streamlit.setSessionState({'fixed_input': textInput.value});
-            Streamlit.rerun();
-        }, 100);
-    });
+    if (webSearchIcon) {
+        webSearchIcon.addEventListener('click', () => {
+            textInput.focus();
+            setTimeout(() => {
+                Streamlit.setSessionState({'web_search_clicked': true});
+                Streamlit.setSessionState({'fixed_input': textInput.value});
+                Streamlit.rerun();
+            }, 100);
+        });
+    }
 
-    imageGenIcon.addEventListener('click', () => {
-        textInput.focus();
-        setTimeout(() => {
-            textInput.value = textInput.value;
-            Streamlit.setSessionState({'image_gen_clicked': true});
-            Streamlit.setSessionState({'fixed_input': textInput.value});
-            Streamlit.rerun();
-        }, 100);
-    });
+    if (imageGenIcon) {
+        imageGenIcon.addEventListener('click', () => {
+            textInput.focus();
+            setTimeout(() => {
+                Streamlit.setSessionState({'image_gen_clicked': true});
+                Streamlit.setSessionState({'fixed_input': textInput.value});
+                Streamlit.rerun();
+            }, 100);
+        });
+    }
 </script>
 """
 st.components.v1.html(js_script)
