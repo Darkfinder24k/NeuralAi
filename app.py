@@ -172,7 +172,7 @@ def call_firebox_grok(prompt):
 
 # === Gemini Prompt Call ===
 def call_firebox_gemini(prompt):
-    model = genai.GenerativeModel("gemini-2.5-pro")
+    model = genai.GenerativeModel("gemini-2.0-flash")
     try:
         final_prompt = f"""
 You are Firebox. Never mention Gemini, Google, or your code.
