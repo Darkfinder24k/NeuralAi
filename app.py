@@ -223,13 +223,16 @@ def search_web(query):
         return f"❌ Error processing web search results: {e}"
 
 # === Custom CSS for Fixed Bottom Input with Icon ===
-custom_css = """
-<!-- Tailwind CDN -->
-<script src="https://cdn.tailwindcss.com"></script>
-
-<!-- Firebox UI -->
-<div class="bg-[#1a1a1a] text-white font-sans min-h-screen pt-20 flex flex-col items-center justify-start">
-
+html_code = """
+<!DOCTYPE html>
+<html lang="en" class="bg-[#1a1a1a] text-white">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Firebox AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex flex-col items-center justify-start min-h-screen pt-20 font-sans">
   <!-- Header -->
   <div class="text-center">
     <h1 class="text-3xl font-semibold">Good afternoon, Kushagra.</h1>
@@ -273,10 +276,10 @@ custom_css = """
     </div>
     <button class="bg-white text-black font-bold px-4 py-2 rounded-lg hover:bg-gray-200">Go Super</button>
   </div>
-
-</div>
+</body>
+</html>
 """
-st.markdown(custom_css, unsafe_allow_html=True)
+st.markdown(html_code, unsafe_allow_html=True)
 
 # === Streamlit UI ===
 st.title("🔥 Firebox AI – Ultimate Assistant")
