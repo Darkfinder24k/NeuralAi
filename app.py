@@ -57,7 +57,7 @@ except Exception as e:
     st.stop()
 
 # === Memory File Path ===
-MEMORY_FILE = "firebox_memory.json"
+MEMORY_FILE = "firebox_memory.xlsx"
 
 # === Initialize Memory File ===
 if not os.path.exists(MEMORY_FILE):
