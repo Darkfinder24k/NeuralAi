@@ -280,58 +280,102 @@ div.stTextInput > div > input {
 }
 </style>
 """
+# Full version of your Firebox AI assistant (Streamlit app)
+# Split into two parts due to length
+
+# Part 1: Main logic and API setup
+[Already shared above - starting from your code]
+
+# PART 2: CONTINUED STREAMLIT UI AND FUNCTIONALITY
+
+# === Display Firebox UI ===
 st.markdown(custom_css, unsafe_allow_html=True)
+st.title("🔥 Firebox AI - Your Ultimate Assistant")
 
-# === Streamlit UI ===
-st.title("🔥 Firebox AI – Ultimate Assistant")
+# === Chat Input ===
+st.markdown("""
+    <style>
+        .stTextInput>div>div>input {
+            font-size: 20px;
+            border-radius: 12px;
+            padding: 10px;
+            border: 2px solid #f7971e;
+            background-color: #1c1c1c;
+            color: white;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-# Move the chat history display to the top
+user_input = st.text_input("Ask Firebox something...", value=st.session_state.get("fixed_input", ""))
+
+if user_input:
+    st.session_state["fixed_input"] = user_input
+    with st.spinner("Firebox is thinking..."):
+        gemini_response = call_firebox_gemini(user_input)
+        deepseek_response = deepseek_ai_response(user_input)
+        grok_response = call_firebox_grok(user_input)
+        web_result = search_web(user_input) if st.session_state.get("web_search_clicked") else ""
+
+        final_response = merge_responses(gemini_response, deepseek_response, grok_response, web_result)
+
+        # Save interaction
+        save_to_memory(user_input, final_response)
+
+        # Display result
+        st.markdown(f"**Firebox:** {final_response}", unsafe_allow_html=True)
+
+# === Display Past Chat ===
+st.subheader("🧠 Firebox Memory")
 display_chat_history()
 
-# Fixed input at the bottom
-user_input = st.text_input("Your Query:", key="fixed_input")
+# === Image Generation Button ===
+if st.button("🖼️ Generate Image"):
+    st.session_state["image_gen_clicked"] = True
+    image_prompt = st.text_input("Enter image prompt:", key="image_prompt")
+    if image_prompt:
+        with st.spinner("Creating image..."):
+            image_url = generate_image(image_prompt)
+            if image_url.startswith("http"):
+                st.image(image_url, caption="AI Generated Image")
+                st.session_state["image_url"] = image_url
+            else:
+                st.error(image_url)
 
-# Footer message
-st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="font-weight: bold;">Help it improve.</span></div>', unsafe_allow_html=True)
+# === Web Search Button ===
+if st.button("🌐 Search Web"):
+    st.session_state["web_search_clicked"] = True
+    st.success("Web search will be included in the next answer.")
 
-if st.session_state.get('fixed_input'):
-    user_input_lower = st.session_state.get('fixed_input').lower()
-    perform_web_search = False
-    perform_image_gen = False
+# === Clear Memory Button ===
+if st.button("🧹 Clear Memory"):
+    st.session_state['memory'] = []
+    if os.path.exists(MEMORY_FILE):
+        os.remove(MEMORY_FILE)
+    st.success("Memory cleared.")
 
-    if "(web search)" in user_input_lower:
-        perform_web_search = True
-        processed_input = user_input_lower.replace("(web search)", "").strip()
-    elif "(generate an image)" in user_input_lower or "image" in user_input_lower or "picture" in user_input_lower or "draw" in user_input_lower or "create a photo" in user_input_lower:
-        perform_image_gen = True
-        processed_input = st.session_state.get('fixed_input')
-    else:
-        processed_input = st.session_state.get('fixed_input')
+# === Voice Input (if on Windows and libraries are present) ===
+if platform.system() == "Windows" and 'pyttsx3' in globals():
+    if st.button("🎙️ Voice Input"):
+        recognizer = sr.Recognizer()
+        with sr.Microphone() as source:
+            st.info("Listening...")
+            audio = recognizer.listen(source)
+            try:
+                voice_text = recognizer.recognize_google(audio)
+                st.session_state["fixed_input"] = voice_text
+                st.success(f"You said: {voice_text}")
+            except sr.UnknownValueError:
+                st.error("Could not understand the audio.")
+            except sr.RequestError as e:
+                st.error(f"Speech recognition error: {e}")
 
-    st.markdown(f"**You:** {st.session_state.get('fixed_input')}")
-
-    if perform_image_gen:
-        with st.spinner("Generating image... 🎨"):
-            image_url = generate_image(processed_input)
-            st.session_state['image_url'] = image_url
-            st.image(image_url, caption=processed_input, use_container_width=True)
-            save_to_memory(st.session_state.get('fixed_input'), f"Image generated: {image_url}")
-    elif perform_web_search:
-        with st.spinner("Searching the web... 🌐"):
-            web_results = search_web(processed_input)
-            gemini_response = call_firebox_gemini(processed_input)
-            deepseek_response = deepseek_ai_response(processed_input)
-            grok_response = call_firebox_grok(processed_input)
-
-            final_output = merge_responses(gemini_response, deepseek_response, grok_response, web_results)
-            save_to_memory(st.session_state.get('fixed_input'), final_output)
-            st.markdown(f"**Firebox:** {final_output}")
-    else:
-        with st.spinner("Thinking... 🤔"):
-            gemini_response = call_firebox_gemini(processed_input)
-            deepseek_response = deepseek_ai_response(processed_input)
-            grok_response = call_firebox_grok(processed_input)
-
-            final_output = merge_responses(gemini_response, deepseek_response, grok_response, "")
-            save_to_memory(st.session_state.get('fixed_input'), final_output)
-            st.markdown(f"**Firebox:** {final_output}")
+# === Text-to-Speech ===
+if platform.system() == "Windows" and 'pyttsx3' in globals():
+    if st.button("🔊 Speak Last Reply"):
+        if st.session_state.get("memory"):
+            last_reply = st.session_state["memory"][-1]["response"]
+            engine = pyttsx3.init()
+            engine.say(last_reply)
+            engine.runAndWait()
+        else:
+            st.warning("No previous response to speak.")
