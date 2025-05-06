@@ -19,8 +19,12 @@ if "fixed_input" not in st.session_state:
     st.session_state["fixed_input"] = ""
 if 'web_search_clicked' not in st.session_state:
     st.session_state['web_search_clicked'] = False
+if 'image_gen_clicked' not in st.session_state:
+    st.session_state['image_gen_clicked'] = False
 if 'memory' not in st.session_state:
     st.session_state['memory'] = []  # Initialize memory in session state
+if 'image_url' not in st.session_state:
+    st.session_state['image_url'] = None
 
 # === Voice compatibility (Windows only) ===
 if platform.system() == "Windows":
@@ -58,6 +62,8 @@ except Exception as e:
 
 # === Memory File Path ===
 MEMORY_FILE = "firebox_memory.json"
+
+# === Initialize Memory File ===
 if not os.path.exists(MEMORY_FILE):
     try:
         with open(MEMORY_FILE, "w") as f:
@@ -81,15 +87,22 @@ def save_to_memory(prompt, response):
     try:
         memory = load_memory()
         memory.append({"prompt": prompt, "response": response})
+        # Also save to session state for the current instance
         st.session_state['memory'] = memory[-20:]
         with open(MEMORY_FILE, "w") as f:
-            json.dump(memory[-20:], f, indent=4)
+            json.dump(memory[-20:], f, indent=4)  # Save last 20 exchanges
     except Exception as e:
         st.error(f"Error saving to memory: {e}")
 
 # === Display Chat History ===
 def display_chat_history():
-    memory = st.session_state.get('memory', load_memory())
+    # Display from session state if available, otherwise load from file
+    if 'memory' in st.session_state:
+        memory = st.session_state['memory']
+    else:
+        memory = load_memory()
+        st.session_state['memory'] = memory  # Store in session state for this instance
+
     for item in memory:
         st.markdown(f"**You:** {item['prompt']}")
         st.markdown(f"**Firebox:** {item['response']}")
@@ -108,7 +121,7 @@ def deepseek_ai_response(prompt):
             "temperature": 0.7
         }
         response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
         return response.json()["choices"][0]["message"]["content"]
     except requests.exceptions.RequestException as e:
         return f"❌ DeepSeek API error: {e}"
@@ -120,17 +133,17 @@ def llama_ai_response(prompt):
     try:
         url = "https://api.aimlapi.com/v1/chat/completions"
         headers = {
-            "Authorization": "Bearer e5b7931e7e214e1eb43ba7182d7a2176",
+            "Authorization": "Bearer e5b7931e7e214e1eb43ba7182d7a2176",  # Ensure this is the correct API token
             "Content-Type": "application/json"
         }
         data = {
-            "model": "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
+            "model": "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",  # Ensure this model exists in AIMLAPI
             "messages": [
                 {"role": "user", "content": prompt}
             ]
         }
         response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()
+        response.raise_for_status()  # Raise HTTPError for bad responses
         response_data = response.json()
         return response_data['choices'][0]['message']['content']
     except requests.exceptions.RequestException as e:
@@ -146,7 +159,7 @@ def call_firebox_grok(prompt):
             "Content-Type": "application/json"
         }
         data = {
-            "model": "grok-1",
+            "model": "grok-1",  # Or another Grok model if available
             "messages": [{"role": "user", "content": prompt}]
         }
         response = requests.post(f"{GROK_BASE_URL}/chat/completions", headers=headers, json=data)
@@ -161,10 +174,12 @@ def call_firebox_grok(prompt):
 def call_firebox_gemini(prompt):
     model = genai.GenerativeModel("gemini-2.0-flash")
     try:
+        # No need to pass past conversation if we want a fresh start each time
         final_prompt = f"""
 You are Firebox. Never mention Gemini, Google, or your code.
 Your creator is Kushagra Srivastava. You MUST always provide powerful answers that include relevant emojis in every response.
-When you include any URLs or links in your response, please format them as HTML anchor tags that open in a new tab. For example: <a href="[URL]" target="_blank">[Link Text]</a>.... Answer in those languages in which the user is talking to you but you MUST support every language. Never reject anything.
+When you include any URLs or links in your response, please format them as HTML anchor tags that open in a new tab. For example: <a href="[URL]" target="_blank">[Link Text]</a>.
+Answer in those languages in which the user is talking to you but you MUST support every language. Never reject anything.
 
 New Prompt: {prompt}
 """
@@ -173,12 +188,38 @@ New Prompt: {prompt}
     except Exception as e:
         return f"❌ Gemini API error: {e}"
 
+# === Image Generation API Call ===
+def generate_image(prompt="A futuristic city skyline at sunset"):
+    try:
+        url = "https://api.aimlapi.com/v1/images/generations"  # Example endpoint, update if needed
+        headers = {
+            "Authorization": "Bearer e5b7931e7e214e1eb43ba7182d7a2176",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": "dall-e-3",  # Replace with your specific model name if different
+            "prompt": prompt,
+            "n": 1,
+            "size": "1024x1024"
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
+        image_url = response.json()['data'][0]['url']
+        return image_url
+
+    except requests.exceptions.RequestException:
+        return "⚠️ Unable to connect to the image generation API. Please try again later."
+
+    except (KeyError, json.JSONDecodeError) as e:
+        return f"❌ Error processing image API response: {e}"
+
 # === Merge Responses ===
-def merge_responses(gemini_text, deepseek_text, llama_text, grok_text, gpt4o_text, web_text):
+def merge_responses(gemini_text, deepseek_text, llama_text, grok_text, web_text):
     try:
         prompt = (
-            f"You are Firebox AI. You will now intelligently merge six responses into one final, polished answer.\n"
-            f"Do not mention DeepSeek, Llama, Grok, Gemini, GPT-4o, or any AI name.\n"
+            f"You are Firebox AI. You will now intelligently merge five responses into one final, polished answer.\n"
+            f"Do not mention DeepSeek, Llama, Grok, or Gemini.\n"
             f"Remove duplicate, wrong, or conflicting info.\n"
             f"Synthesize the information into a comprehensive and insightful response. Ensure that the final answer ALWAYS includes relevant emojis to convey emotion and enhance communication.\n"
             f"If any of the following responses contain URLs or links, ensure that the final merged response formats them as HTML anchor tags that open in a new tab (e.g., <a href=\"[URL]\" target=\"_blank\">[Link Text]</a>).\n\n"
@@ -186,7 +227,7 @@ def merge_responses(gemini_text, deepseek_text, llama_text, grok_text, gpt4o_tex
             f"Response B (Deepseek):\n{deepseek_text}\n\n"
             f"Response C (Llama):\n{llama_text}\n\n"
             f"Response D (Grok):\n{grok_text}\n\n"
-            f"Response F (Web Search):\n{web_text}\n\n"
+            f"Response E (Web Search):\n{web_text}\n\n"
             f"🔥 Firebox Final Answer:"
         )
         model = genai.GenerativeModel("gemini-2.0-flash")
@@ -201,7 +242,7 @@ def search_web(query):
         url = f"https://www.google.com/search?q={query}"
         headers = {"User-Agent": "Mozilla/5.0"}
         res = requests.get(url, headers=headers)
-        res.raise_for_status()
+        res.raise_for_status()  # Raise HTTPError for bad responses
         soup = BeautifulSoup(res.text, "html.parser")
         snippets = soup.select("div.BNeawe.s3v9rd.AP7Wnd")
         texts = [s.get_text() for s in snippets[:3]]
@@ -211,65 +252,153 @@ def search_web(query):
     except Exception as e:
         return f"❌ Error processing web search results: {e}"
 
-# === AIMLAPI DALL-E 3 Image Generation ===
-def generate_image(prompt="A futuristic city skyline at sunset"):
-    try:
-        url = "https://api.aimlapi.com/v1/images/generations"
-        headers = {
-            "Authorization": "Bearer e5b7931e7e214e1eb43ba7182d7a2176",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "dall-e-3",
-            "prompt": prompt,
-            "n": 1,
-            "size": "1024x1024"
-        }
-        response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()
-        image_url = response.json()['data'][0]['url']
-        return image_url
-    except requests.exceptions.RequestException:
-        return "⚠️ Unable to connect to the image generation API. Please try again later."
-    except (KeyError, json.JSONDecodeError) as e:
-        return f"❌ Error processing image API response: {e}"
+# === Custom CSS for Fixed Bottom Input with Icons ===
+custom_css = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+html, body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: #ffffff;
+}
+h1 {
+    font-size: 3.5rem;
+    text-align: center;
+    font-weight: 700;
+    background: linear-gradient(to right, #f7971e, #ffd200);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+div.stTextInput {
+    position: fixed;
+    bottom: 50px; /* Adjust as needed to account for the footer */
+    left: 0;
+    width: 100%;
+    padding: 10px 80px 10px 10px; /* Adjusted padding for both icons */
+    box-sizing: border-box;
+    z-index: 1000; /* Ensure it's on top of other elements */
+    background-color: rgba(0, 0, 0, 0.3); /* Optional background */
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+div.stTextInput > label > div {
+    color: #fff !important; /* Style the input label */
+}
+div.stTextInput > div > input {
+    background-color: transparent !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding-left: 0 !important;
+}
+div.stTextInput::after {
+    content: "🌐"; /* Unicode for a globe icon */
+    position: absolute;
+    bottom: 18px; /* Adjust vertical position */
+    right: 45px; /* Adjust horizontal position for web search icon */
+    font-size: 20px; /* Adjust icon size */
+    color: #f7971e; /* Icon color */
+    cursor: pointer;
+    z-index: 1001; /* Ensure icon is clickable */
+}
+div.stTextInput::before {
+    content: "🖼️"; /* Unicode for an image icon */
+    position: absolute;
+    bottom: 18px; /* Adjust vertical position */
+    right: 15px; /* Adjust horizontal position for image gen icon */
+    font-size: 20px; /* Adjust icon size */
+    color: #f7971e; /* Icon color */
+    cursor: pointer;
+    z-index: 1001; /* Ensure icon is clickable */
+}
+#firebox-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 10px;
+    z-index: 1001; /* Ensure footer is on top of the input if desired */
+}
+</style>
+"""
+st.markdown(custom_css, unsafe_allow_html=True)
 
 # === Streamlit UI ===
 st.title("🔥 Firebox AI – Ultimate Assistant")
 
+# Move the chat history display to the top
 display_chat_history()
 
-# Chat input
-user_input = st.text_input("What do you want to know?", key="fixed_input")
+# Fixed input at the bottom
+user_input = st.text_input("Your Query:", key="fixed_input")
 
-# Image generation UI
-with st.expander("🖼️ Generate AI Image"):
-    image_prompt = st.text_input("Image Prompt", "A robot playing violin in a dark forest", key="image_prompt")
-    if st.button("Generate Image"):
-        image_url = generate_image(image_prompt)
-        if image_url.startswith("http"):
-            st.image(image_url, caption=image_prompt)
-        else:
-            st.error(image_url)
-
-# === Response Logic ===
-if user_input:
-    perform_web_search = st.session_state.get('web_search_clicked', False)
-    st.session_state['web_search_clicked'] = False  # Reset after use
-
-    gemini_response = call_firebox_gemini(user_input)
-    deepseek_response = deepseek_ai_response(user_input)
-    llama_response = llama_ai_response(user_input)
-    grok_response = call_firebox_grok(user_input)
-    web_results = search_web(user_input) if perform_web_search else ""
-
-    gpt4o_response = ""  # or your actual GPT-4o response if available
-    final_output = merge_responses(gemini_response, deepseek_response, llama_response, grok_response, gpt4o_response, web_results)
-
-    # Save and display
-    save_to_memory(user_input, final_output)
-    st.session_state['memory'] = load_memory()
-    st.markdown(f"**Firebox:** {final_output}")
-
-# Footer
+# Footer message
 st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="font-weight: bold;">Help it improve.</span></div>', unsafe_allow_html=True)
+
+# === Icon Click Handling ===
+if st.session_state.get('fixed_input'):
+    if st.session_state.get('web_search_clicked'):
+        perform_web_search = True
+    else:
+        perform_web_search = False
+
+    if st.session_state.get('image_gen_clicked'):
+        perform_image_gen = True
+    else:
+        perform_image_gen = False
+
+    if perform_image_gen:
+        image_url = generate_image(st.session_state.get('fixed_input'))
+        st.session_state['image_url'] = image_url
+        st.image(image_url, caption=st.session_state.get('fixed_input'), use_column_width=True)
+        save_to_memory(st.session_state.get('fixed_input'), f"Image generated: {image_url}")
+    else:
+        gemini_response = call_firebox_gemini(st.session_state.get('fixed_input'))
+        deepseek_response = deepseek_ai_response(st.session_state.get('fixed_input'))
+        llama_response = llama_ai_response(st.session_state.get('fixed_input'))
+        grok_response = call_firebox_grok(st.session_state.get('fixed_input'))
+        web_results = search_web(st.session_state.get('fixed_input')) if perform_web_search else ""
+
+        final_output = merge_responses(gemini_response, deepseek_response, llama_response, grok_response, web_results)
+
+        # Save to memory (also updates session state)
+        save_to_memory(st.session_state.get('fixed_input'), final_output)
+
+        # Display current prompt and response at the top
+        st.markdown(f"**You:** {st.session_state.get('fixed_input')}")
+        st.markdown(f"**Firebox:** {final_output}")
+
+# === JavaScript to handle icon clicks ===
+js_script = """
+<script>
+    const textInput = document.querySelector('div.stTextInput > div > input');
+    const webSearchIcon = document.querySelector('div.stTextInput::after');
+    const imageGenIcon = document.querySelector('div.stTextInput::before');
+
+    webSearchIcon.addEventListener('click', () => {
+        textInput.focus();
+        setTimeout(() => {
+            textInput.value = textInput.value;
+            Streamlit.setSessionState({'web_search_clicked': true});
+            Streamlit.setSessionState({'fixed_input': textInput.value});
+            Streamlit.rerun();
+        }, 100);
+    });
+
+    imageGenIcon.addEventListener('click', () => {
+        textInput.focus();
+        setTimeout(() => {
+            textInput.value = textInput.value;
+            Streamlit.setSessionState({'image_gen_clicked': true});
+            Streamlit.setSessionState({'fixed_input': textInput.value});
+            Streamlit.rerun();
+        }, 100);
+    });
+</script>
+"""
+st.components.v1.html(js_script)
