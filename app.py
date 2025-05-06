@@ -180,11 +180,10 @@ Answer in those languages in which the user is talking to you but you MUST suppo
         model = genai.GenerativeModel(model_name)
         response = model.generate_content(final_prompt, stream=is_premium)
         if is_premium:
-            try:
-                for chunk in response:
-                    yield chunk.text
-            except Exception as e:
-                yield f"⚠️ Gemini streaming error: {e}"
+            full_response = ""
+            for chunk in response:
+                full_response += chunk.text
+            return full_response
         else:
             return "".join([p.text for p in response.parts])
     except Exception as e:
@@ -228,25 +227,25 @@ def premium_merge_responses(gemini_text, deepseek_texts, grok_text, web_text):
     if isinstance(gemini_text, str):
         final_response_parts.append(f"**Gemini:** {gemini_text}\n\n")
     else:
-        final_response_parts.append("⚠️ **Gemini:** Encountered an issue.\n\n")
+        final_response_parts.append(f"⚠️ **Gemini:** {gemini_text}\n\n")
 
     if isinstance(deepseek_texts, list):
         final_response_parts.append(f"**DeepSeek:** {' '.join(deepseek_texts)}\n\n")
     elif isinstance(deepseek_texts, str):
         final_response_parts.append(f"**DeepSeek:** {deepseek_texts}\n\n")
     else:
-        final_response_parts.append("⚠️ **DeepSeek:** Encountered an issue.\n\n")
+        final_response_parts.append(f"⚠️ **DeepSeek:** {deepseek_texts}\n\n")
 
     if isinstance(grok_text, str):
         final_response_parts.append(f"**Grok:** {grok_text}\n\n")
     else:
-        final_response_parts.append("⚠️ **Grok:** Encountered an issue.\n\n")
+        final_response_parts.append(f"⚠️ **Grok:** {grok_text}\n\n")
 
     if web_text:
         final_response_parts.append(f"**Web Search:** {web_text}\n\n")
 
     if final_response_parts:
-        return "🔥 **Firebox Premium Analysis:**\n" + "".join(final_response_parts) + "\nI've presented the raw outputs from each available source. Some encountered issues, which are noted. Further synthesis will be available once all services are functioning correctly. 👍"
+        return "🔥 **Firebox Premium Analysis:**\n" + "".join(final_response_parts) + "\nI've presented the outputs from each available source. Issues encountered by specific services are noted. A more integrated answer will be available once all services are functioning correctly. 👍"
     else:
         return "⚠️ **Firebox Premium:** All underlying services encountered errors. Please check their status."
 
@@ -256,18 +255,18 @@ def merge_responses(gemini_text, deepseek_text, web_text):
     if isinstance(gemini_text, str):
         final_response_parts.append(f"**Gemini:** {gemini_text}\n\n")
     else:
-        final_response_parts.append("⚠️ **Gemini:** Encountered an issue.\n\n")
+        final_response_parts.append(f"⚠️ **Gemini:** {gemini_text}\n\n")
 
     if isinstance(deepseek_text, str):
         final_response_parts.append(f"**DeepSeek:** {deepseek_text}\n\n")
     else:
-        final_response_parts.append("⚠️ **DeepSeek:** Encountered an issue.\n\n")
+        final_response_parts.append(f"⚠️ **DeepSeek:** {deepseek_text}\n\n")
 
     if web_text:
         final_response_parts.append(f"**Web Search:** {web_text}\n\n")
 
     if final_response_parts:
-        return "🔥 **Firebox Standard Analysis:**\n" + "".join(final_response_parts) + "\nI've presented the raw outputs from each available source. Some encountered issues, which are noted. A more integrated answer will be provided when all services are stable. 👍"
+        return "🔥 **Firebox Standard Analysis:**\n" + "".join(final_response_parts) + "\nI've presented the outputs from each available source. Issues encountered by specific services are noted. A more integrated answer will be provided when all services are stable. 👍"
     else:
         return "⚠️ **Firebox Standard:** Both Gemini and DeepSeek encountered errors. Please check their status."
 
@@ -436,23 +435,11 @@ if st.session_state.get('fixed_input'):
     else:
         with st.spinner("Thinking... 🤔"):
             if st.session_state.get('is_premium'):
-                gemini_response_stream = call_firebox_gemini(processed_input, is_premium=True)
+                gemini_response = call_firebox_gemini(processed_input, is_premium=True)
                 deepseek_response = deepseek_ai_response(processed_input, is_premium=True)
                 grok_response = call_firebox_grok(processed_input, is_premium=True)
-
-                response_area = st.empty()
-                full_gemini_response = ""
-
-                # Display streaming responses
-                for gemini_chunk in gemini_response_stream:
-                    full_gemini_response += gemini_chunk
-                    response_area.markdown(f"**Gemini:** {full_gemini_response}")
-
-                if isinstance(deepseek_response, list):
-                    final_output = premium_merge_responses(full_gemini_response, deepseek_response, grok_response, "")
-                else:
-                    final_output = premium_merge_responses(full_gemini_response, deepseek_response, grok_response, "")
-                response_area.markdown(f"**Firebox:** {final_output}")
+                final_output = premium_merge_responses(gemini_response, deepseek_response, grok_response, "")
+                st.markdown(f"**Firebox:** {final_output}")
                 save_to_memory(st.session_state.get('fixed_input'), final_output)
 
             else:
