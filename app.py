@@ -499,7 +499,7 @@ if st.session_state.get('fixed_input'):
                 gemini_response = call_firebox_gemini(processed_input)
                 deepseek_response = deepseek_ai_response(processed_input)
                 llama_response = llama_ai_response(processed_input)
-                final_output = merge_responses(gemini_response, deepseek_response, llama_response, "", "") # Grok and web search removed from standard
+                final_output = merge_responses(gemini_response, deepseek_response, llama_response, "") # Grok and web search removed from standard
                 save_to_memory(st.session_state.get('fixed_input'), final_output)
                 st.markdown(f"**Firebox:** {final_output}")
 
