@@ -465,22 +465,22 @@ if st.session_state.get('fixed_input'):
                 gemini_response = call_firebox_gemini(processed_input)
                 deepseek_response = deepseek_ai_response(processed_input)
                 llama_response = llama_ai_response(processed_input)
-                final_output = merge_responses(gemini_response, deepseek_response, llama_response, "", web_results) # Grok removed from standard merge
+                final_output = merge_responses(gemini_response, deepseek_response, llama_response, web_results) # Grok removed from standard merge
             save_to_memory(st.session_state.get('fixed_input'), final_output)
             st.markdown(f"**Firebox:** {final_output}")
     else:
         with st.spinner("Thinking... 🤔"):
             if st.session_state.get('is_premium'):
-                # ... (premium code block - no changes needed here) ...
-                pass
-            else:
-                gemini_response = call_firebox_gemini(processed_input)
-                deepseek_response = deepseek_ai_response(processed_input)
-                llama_response = llama_ai_response(processed_input)
-                final_output = merge_responses(gemini_response, deepseek_response, llama_response, "") # Corrected line: Removed the extra ""
-                save_to_memory(st.session_state.get('fixed_input'), final_output)
-                st.markdown(f"**Firebox:** {final_output}")
-                # Premium: Display streaming responses
+                gemini_response_stream = call_firebox_gemini(processed_input, is_premium=True)
+                llama_response_stream = llama_ai_response(processed_input, is_premium=True)
+                deepseek_response = deepseek_ai_response(processed_input, is_premium=True)
+                grok_response = call_firebox_grok(processed_input, is_premium=True)
+
+                response_area = st.empty()
+                full_gemini_response = ""
+                full_llama_response = ""
+
+                # Display streaming responses
                 for gemini_chunk, llama_chunk in zip(gemini_response_stream, llama_response_stream):
                     full_gemini_response += gemini_chunk
                     full_llama_response += llama_chunk
@@ -494,12 +494,12 @@ if st.session_state.get('fixed_input'):
                 response_area.markdown(f"**Firebox:** {final_output}")
                 save_to_memory(st.session_state.get('fixed_input'), final_output)
 
-                else:
-                    gemini_response = call_firebox_gemini(processed_input)
-                    deepseek_response = deepseek_ai_response(processed_input)
-                    llama_response = llama_ai_response(processed_input)
-                    final_output = merge_responses(gemini_response, deepseek_response, llama_response, "") # Grok and web search removed from standard
-                    save_to_memory(st.session_state.get('fixed_input'), final_output)
-                    st.markdown(f"**Firebox:** {final_output}")
+            else:
+                gemini_response = call_firebox_gemini(processed_input)
+                deepseek_response = deepseek_ai_response(processed_input)
+                llama_response = llama_ai_response(processed_input)
+                final_output = merge_responses(gemini_response, deepseek_response, llama_response, "") # Grok and web search removed from standard
+                save_to_memory(st.session_state.get('fixed_input'), final_output)
+                st.markdown(f"**Firebox:** {final_output}")
 
 # No JavaScript needed for the text-based trigger phrases
