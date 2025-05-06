@@ -306,4 +306,4 @@ if user_input:
     web_results = search_web(user_input) if perform_web_search else ""
 
     gpt4o_response = ""  # or your actual GPT-4o response if available
-    final_output = merge_responses(gemini_response, deepseek_
+    final_output = merge_responses(gemini_response, deepseek_response, llama_response, grok_response, gpt4o_response, web_results)
