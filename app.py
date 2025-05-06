@@ -133,16 +133,16 @@ def deepseek_ai_response(prompt, is_premium=False):
         }
         response = requests.post(url, headers=headers, json=data)
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-        if is_premium and response.json()["choices"]:
+        if is_premium and response.json().get("choices"):
             return [choice["message"]["content"] for choice in response.json()["choices"]]
-        elif response.json()["choices"]:
+        elif response.json().get("choices"):
             return response.json()["choices"][0]["message"]["content"]
         else:
-            return "❌ DeepSeek API returned no response."
+            return f"❌ DeepSeek API: No choices returned. Response: {response.text}"
     except requests.exceptions.RequestException as e:
         return f"❌ DeepSeek API error: {e}"
     except (KeyError, json.JSONDecodeError) as e:
-        return f"❌ Error processing DeepSeek response: {e}"
+        return f"❌ Error processing DeepSeek response: {e}. Response: {response.text}"
 
 # === Grok API Call ===
 def call_firebox_grok(prompt, is_premium=False):
@@ -159,11 +159,14 @@ def call_firebox_grok(prompt, is_premium=False):
         }
         response = requests.post(f"{GROK_BASE_URL}/chat/completions", headers=headers, json=data)
         response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
+        if response.json().get("choices") and response.json()["choices"][0].get("message"):
+            return response.json()["choices"][0]["message"]["content"]
+        else:
+            return f"❌ Grok API: No message in choices. Response: {response.text}"
     except requests.exceptions.RequestException as e:
         return f"❌ Grok API error: {e}"
     except (KeyError, json.JSONDecodeError) as e:
-        return f"❌ Error processing Grok response: {e}"
+        return f"❌ Error processing Grok response: {e}. Response: {response.text}"
 
 # === Gemini Prompt Call ===
 def call_firebox_gemini(prompt, is_premium=False):
@@ -223,50 +226,58 @@ def generate_image(prompt="A simple abstract design"):
 
 # === Premium Merge Responses ===
 def premium_merge_responses(gemini_text, deepseek_texts, grok_text, web_text):
-    final_response_parts = []
+    responses = {}
     if isinstance(gemini_text, str):
-        final_response_parts.append(f"**Gemini:** {gemini_text}\n\n")
+        responses["Gemini"] = gemini_text
     else:
-        final_response_parts.append(f"⚠️ **Gemini:** {gemini_text}\n\n")
+        responses["Gemini"] = f"⚠️ Gemini: {gemini_text}"
 
     if isinstance(deepseek_texts, list):
-        final_response_parts.append(f"**DeepSeek:** {' '.join(deepseek_texts)}\n\n")
+        responses["DeepSeek"] = " ".join(deepseek_texts)
     elif isinstance(deepseek_texts, str):
-        final_response_parts.append(f"**DeepSeek:** {deepseek_texts}\n\n")
+        responses["DeepSeek"] = deepseek_texts
     else:
-        final_response_parts.append(f"⚠️ **DeepSeek:** {deepseek_texts}\n\n")
+        responses["DeepSeek"] = f"⚠️ DeepSeek: {deepseek_texts}"
 
     if isinstance(grok_text, str):
-        final_response_parts.append(f"**Grok:** {grok_text}\n\n")
+        responses["Grok"] = grok_text
     else:
-        final_response_parts.append(f"⚠️ **Grok:** {grok_text}\n\n")
+        responses["Grok"] = f"⚠️ Grok: {grok_text}"
 
     if web_text:
-        final_response_parts.append(f"**Web Search:** {web_text}\n\n")
+        responses["Web Search"] = web_text
 
-    if final_response_parts:
-        return "🔥 **Firebox Premium Analysis:**\n" + "".join(final_response_parts) + "\nI've presented the outputs from each available source. Issues encountered by specific services are noted. A more integrated answer will be available once all services are functioning correctly. 👍"
+    if responses:
+        response_string = "🔥 **Firebox Premium Analysis:**\n"
+        for source, text in responses.items():
+            response_string += f"**{source}:** {text}\n\n"
+        response_string += "I've presented the outputs from each available source. Issues encountered by specific services are noted. A more integrated answer will be available once all services are functioning correctly. 👍"
+        return response_string
     else:
         return "⚠️ **Firebox Premium:** All underlying services encountered errors. Please check their status."
 
 # === Basic Merge Responses (Restricted Facilities) ===
 def merge_responses(gemini_text, deepseek_text, web_text):
-    final_response_parts = []
+    responses = {}
     if isinstance(gemini_text, str):
-        final_response_parts.append(f"**Gemini:** {gemini_text}\n\n")
+        responses["Gemini"] = gemini_text
     else:
-        final_response_parts.append(f"⚠️ **Gemini:** {gemini_text}\n\n")
+        responses["Gemini"] = f"⚠️ Gemini: {gemini_text}"
 
     if isinstance(deepseek_text, str):
-        final_response_parts.append(f"**DeepSeek:** {deepseek_text}\n\n")
+        responses["DeepSeek"] = deepseek_text
     else:
-        final_response_parts.append(f"⚠️ **DeepSeek:** {deepseek_text}\n\n")
+        responses["DeepSeek"] = f"⚠️ DeepSeek: {deepseek_text}"
 
     if web_text:
-        final_response_parts.append(f"**Web Search:** {web_text}\n\n")
+        responses["Web Search"] = web_text
 
-    if final_response_parts:
-        return "🔥 **Firebox Standard Analysis:**\n" + "".join(final_response_parts) + "\nI've presented the outputs from each available source. Issues encountered by specific services are noted. A more integrated answer will be provided when all services are stable. 👍"
+    if responses:
+        response_string = "🔥 **Firebox Standard Analysis:**\n"
+        for source, text in responses.items():
+            response_string += f"**{source}:** {text}\n\n"
+        response_string += "I've presented the outputs from each available source. Issues encountered by specific services are noted. A more integrated answer will be provided when all services are stable. 👍"
+        return response_string
     else:
         return "⚠️ **Firebox Standard:** Both Gemini and DeepSeek encountered errors. Please check their status."
 
