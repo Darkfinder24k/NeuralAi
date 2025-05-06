@@ -133,16 +133,22 @@ def deepseek_ai_response(prompt, is_premium=False):
         }
         response = requests.post(url, headers=headers, json=data)
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-        if is_premium and response.json().get("choices"):
-            return [choice["message"]["content"] for choice in response.json()["choices"]]
-        elif response.json().get("choices"):
-            return response.json()["choices"][0]["message"]["content"]
+        raw_response = response.json()
+        print(f"Raw DeepSeek Response: {raw_response}")
+        if is_premium and raw_response.get("choices"):
+            return [choice["message"]["content"] for choice in raw_response["choices"]]
+        elif raw_response.get("choices"):
+            return raw_response["choices"][0]["message"]["content"]
         else:
             return f"❌ DeepSeek API: No choices returned. Response: {response.text}"
     except requests.exceptions.RequestException as e:
-        return f"❌ DeepSeek API error: {e}"
+        error_message = f"❌ DeepSeek API error: {e}"
+        print(f"Raw DeepSeek Error: {error_message}")
+        return error_message
     except (KeyError, json.JSONDecodeError) as e:
-        return f"❌ Error processing DeepSeek response: {e}. Response: {response.text}"
+        error_message = f"❌ Error processing DeepSeek response: {e}. Response: {response.text}"
+        print(f"Raw DeepSeek JSON Error: {error_message}")
+        return error_message
 
 # === Grok API Call ===
 def call_firebox_grok(prompt, is_premium=False):
@@ -159,14 +165,20 @@ def call_firebox_grok(prompt, is_premium=False):
         }
         response = requests.post(f"{GROK_BASE_URL}/chat/completions", headers=headers, json=data)
         response.raise_for_status()
-        if response.json().get("choices") and response.json()["choices"][0].get("message"):
-            return response.json()["choices"][0]["message"]["content"]
+        raw_response = response.json()
+        print(f"Raw Grok Response: {raw_response}")
+        if raw_response.get("choices") and raw_response["choices"][0].get("message"):
+            return raw_response["choices"][0]["message"]["content"]
         else:
             return f"❌ Grok API: No message in choices. Response: {response.text}"
     except requests.exceptions.RequestException as e:
-        return f"❌ Grok API error: {e}"
+        error_message = f"❌ Grok API error: {e}"
+        print(f"Raw Grok Error: {error_message}")
+        return error_message
     except (KeyError, json.JSONDecodeError) as e:
-        return f"❌ Error processing Grok response: {e}. Response: {response.text}"
+        error_message = f"❌ Error processing Grok response: {e}. Response: {response.text}"
+        print(f"Raw Grok JSON Error: {error_message}")
+        return error_message
 
 # === Gemini Prompt Call ===
 def call_firebox_gemini(prompt, is_premium=False):
@@ -184,13 +196,23 @@ Answer in those languages in which the user is talking to you but you MUST suppo
         response = model.generate_content(final_prompt, stream=is_premium)
         if is_premium:
             full_response = ""
-            for chunk in response:
-                full_response += chunk.text
+            try:
+                for chunk in response:
+                    full_response += chunk.text
+            except Exception as e:
+                error_message = f"⚠️ Gemini streaming error: {e}"
+                print(f"Raw Gemini Streaming Error: {error_message}")
+                return error_message
+            print(f"Raw Gemini Response (Premium): {full_response}")
             return full_response
         else:
-            return "".join([p.text for p in response.parts])
+            raw_response = "".join([p.text for p in response.parts])
+            print(f"Raw Gemini Response (Standard): {raw_response}")
+            return raw_response
     except Exception as e:
-        return f"❌ Gemini API error: {e}"
+        error_message = f"❌ Gemini API error: {e}"
+        print(f"Raw Gemini Error: {error_message}")
+        return error_message
 
 # === Advanced Image Generation (Premium) ===
 def generate_advanced_image(prompt="A photorealistic scene of a nebula with vibrant colors and intricate details"):
@@ -227,19 +249,19 @@ def generate_image(prompt="A simple abstract design"):
 # === Premium Merge Responses ===
 def premium_merge_responses(gemini_text, deepseek_texts, grok_text, web_text):
     responses = {}
-    if isinstance(gemini_text, str):
+    if isinstance(gemini_text, str) and not gemini_text.startswith("⚠️") and not gemini_text.startswith("❌"):
         responses["Gemini"] = gemini_text
     else:
         responses["Gemini"] = f"⚠️ Gemini: {gemini_text}"
 
-    if isinstance(deepseek_texts, list):
+    if isinstance(deepseek_texts, list) and all(isinstance(item, str) for item in deepseek_texts) and not any(item.startswith("⚠️") or item.startswith("❌") for item in deepseek_texts):
         responses["DeepSeek"] = " ".join(deepseek_texts)
-    elif isinstance(deepseek_texts, str):
+    elif isinstance(deepseek_texts, str) and not deepseek_texts.startswith("⚠️") and not deepseek_texts.startswith("❌"):
         responses["DeepSeek"] = deepseek_texts
     else:
         responses["DeepSeek"] = f"⚠️ DeepSeek: {deepseek_texts}"
 
-    if isinstance(grok_text, str):
+    if isinstance(grok_text, str) and not grok_text.startswith("⚠️") and not grok_text.startswith("❌"):
         responses["Grok"] = grok_text
     else:
         responses["Grok"] = f"⚠️ Grok: {grok_text}"
@@ -259,12 +281,12 @@ def premium_merge_responses(gemini_text, deepseek_texts, grok_text, web_text):
 # === Basic Merge Responses (Restricted Facilities) ===
 def merge_responses(gemini_text, deepseek_text, web_text):
     responses = {}
-    if isinstance(gemini_text, str):
+    if isinstance(gemini_text, str) and not gemini_text.startswith("⚠️") and not gemini_text.startswith("❌"):
         responses["Gemini"] = gemini_text
     else:
         responses["Gemini"] = f"⚠️ Gemini: {gemini_text}"
 
-    if isinstance(deepseek_text, str):
+    if isinstance(deepseek_text, str) and not deepseek_text.startswith("⚠️") and not deepseek_text.startswith("❌"):
         responses["DeepSeek"] = deepseek_text
     else:
         responses["DeepSeek"] = f"⚠️ DeepSeek: {deepseek_text}"
