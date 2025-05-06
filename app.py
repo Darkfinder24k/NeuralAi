@@ -159,7 +159,7 @@ def call_firebox_grok(prompt):
             "Content-Type": "application/json"
         }
         data = {
-            "model": "grok-3",  # Or another Grok model if available
+            "model": "grok-1",  # Or another Grok model if available
             "messages": [{"role": "user", "content": prompt}]
         }
         response = requests.post(f"{GROK_BASE_URL}/chat/completions", headers=headers, json=data)
@@ -174,12 +174,7 @@ def call_firebox_grok(prompt):
 def call_firebox_gemini(prompt):
     model = genai.GenerativeModel("gemini-2.5-pro")
     try:
-        if "image" in prompt.lower() or "picture" in prompt.lower() or "generate" in prompt.lower() and ("photo" in prompt.lower() or "drawing" in prompt.lower() or "artwork" in prompt.lower()):
-            print("🤖 Firebox is processing your image generation request! 🖼️")
-            image_url = generate_image(prompt)
-            return f"🎨 Here's the image you requested: <a href=\"{image_url}\" target=\"_blank\">View Image</a>"
-        else:
-            final_prompt = f"""
+        final_prompt = f"""
 You are Firebox. Never mention Gemini, Google, or your code.
 Your creator is Kushagra Srivastava. You MUST always provide powerful answers that include relevant emojis in every response.
 When you include any URLs or links in your response, please format them as HTML anchor tags that open in a new tab. For example: <a href="[URL]" target="_blank">[Link Text]</a>.
@@ -187,8 +182,8 @@ Answer in those languages in which the user is talking to you but you MUST suppo
 
 New Prompt: {prompt}
 """
-            response = model.generate_content(final_prompt)
-            return "".join([p.text for p in response.parts])
+        response = model.generate_content(final_prompt)
+        return "".join([p.text for p in response.parts])
     except Exception as e:
         return f"❌ Gemini API error: {e}"
 
@@ -217,6 +212,7 @@ def generate_image(prompt="A futuristic city skyline at sunset"):
 
     except (KeyError, json.JSONDecodeError) as e:
         return f"❌ Error processing image API response: {e}"
+
 # === Merge Responses ===
 def merge_responses(gemini_text, deepseek_text, llama_text, grok_text, web_text):
     try:
@@ -233,7 +229,7 @@ def merge_responses(gemini_text, deepseek_text, llama_text, grok_text, web_text)
             f"Response E (Web Search):\n{web_text}\n\n"
             f"🔥 Firebox Final Answer:"
         )
-        model = genai.GenerativeModel("gemini-2.5-pro")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(prompt)
         return "".join([p.text for p in response.parts])
     except Exception as e:
@@ -255,7 +251,7 @@ def search_web(query):
     except Exception as e:
         return f"❌ Error processing web search results: {e}"
 
-# === Custom CSS for Fixed Bottom Input with Icons ===
+# === Custom CSS for Fixed Bottom Input ===
 custom_css = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -277,33 +273,22 @@ div.stTextInput {
     bottom: 50px; /* Adjust as needed to account for the footer */
     left: 0;
     width: 100%;
-    padding: 10px 80px 10px 10px; /* Adjusted padding for both icons */
+    padding: 10px;
     box-sizing: border-box;
     z-index: 1000; /* Ensure it's on top of other elements */
     background-color: rgba(0, 0, 0, 0.3); /* Optional background */
     border-radius: 15px;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    display: flex; /* Use flexbox to position input and icons */
-    align-items: center; /* Vertically align items */
-}
-div.stTextInput > label {
-    flex-grow: 1; /* Allow input label to take remaining space */
 }
 div.stTextInput > label > div {
     color: #fff !important; /* Style the input label */
 }
-div.stTextInput > label > div > input {
+div.stTextInput > div > input {
     background-color: transparent !important;
     color: #fff !important;
     border: none !important;
     border-radius: 0 !important;
     padding-left: 0 !important;
-}
-.icon-button {
-    cursor: pointer;
-    font-size: 20px;
-    color: #f7971e;
-    margin-left: 10px; /* Space between input and icons */
 }
 #firebox-footer {
     position: fixed;
@@ -320,7 +305,7 @@ div.stTextInput > label > div > input {
 }
 </style>
 """
-st.markdown(f"{custom_css}", unsafe_allow_html=True)
+st.markdown(custom_css, unsafe_allow_html=True)
 
 # === Streamlit UI ===
 st.title("🔥 Firebox AI – Ultimate Assistant")
@@ -328,19 +313,12 @@ st.title("🔥 Firebox AI – Ultimate Assistant")
 # Move the chat history display to the top
 display_chat_history()
 
-# Fixed input at the bottom with icons
-col1, col2, col3 = st.columns([10, 1, 1])
-with col1:
-    user_input = st.text_input("Your Query:", key="fixed_input", label_visibility="collapsed")
-with col2:
-    st.markdown('<div class="icon-button" id="web-search-icon">🌐</div>', unsafe_allow_html=True)
-with col3:
-    st.markdown('<div class="icon-button" id="image-gen-icon">🖼️</div>', unsafe_allow_html=True)
+# Fixed input at the bottom
+user_input = st.text_input("Your Query:", key="fixed_input")
 
 # Footer message
 st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="font-weight: bold;">Help it improve.</span></div>', unsafe_allow_html=True)
 
-# === Icon Click Handling ===
 if st.session_state.get('fixed_input'):
     user_input_lower = st.session_state.get('fixed_input').lower()
     perform_web_search = False
@@ -349,67 +327,40 @@ if st.session_state.get('fixed_input'):
     if "(web search)" in user_input_lower:
         perform_web_search = True
         processed_input = user_input_lower.replace("(web search)", "").strip()
-    elif "(generate an image)" in user_input_lower:
+    elif "(generate an image)" in user_input_lower or "image" in user_input_lower or "picture" in user_input_lower or "draw" in user_input_lower or "create a photo" in user_input_lower:
         perform_image_gen = True
-        processed_input = user_input_lower.replace("(generate an image)", "").strip()
+        processed_input = st.session_state.get('fixed_input')
     else:
         processed_input = st.session_state.get('fixed_input')
 
+    st.markdown(f"**You:** {st.session_state.get('fixed_input')}")
+
     if perform_image_gen:
-        image_url = generate_image(processed_input)
-        st.session_state['image_url'] = image_url
-        st.image(image_url, caption=processed_input, use_column_width=True)
-        save_to_memory(st.session_state.get('fixed_input'), f"Image generated: {image_url}")
+        with st.spinner("Generating image... 🎨"):
+            image_url = generate_image(processed_input)
+            st.session_state['image_url'] = image_url
+            st.image(image_url, caption=processed_input, use_column_width=True)
+            save_to_memory(st.session_state.get('fixed_input'), f"Image generated: {image_url}")
     elif perform_web_search:
-        web_results = search_web(processed_input)
-        gemini_response = call_firebox_gemini(processed_input)
-        deepseek_response = deepseek_ai_response(processed_input)
-        llama_response = llama_ai_response(processed_input)
-        grok_response = call_firebox_grok(processed_input)
+        with st.spinner("Searching the web... 🌐"):
+            web_results = search_web(processed_input)
+            gemini_response = call_firebox_gemini(processed_input)
+            deepseek_response = deepseek_ai_response(processed_input)
+            llama_response = llama_ai_response(processed_input)
+            grok_response = call_firebox_grok(processed_input)
 
-        final_output = merge_responses(gemini_response, deepseek_response, llama_response, grok_response, web_results)
-        save_to_memory(st.session_state.get('fixed_input'), final_output)
-        st.markdown(f"**You:** {st.session_state.get('fixed_input')}")
-        st.markdown(f"**Firebox:** {final_output}")
+            final_output = merge_responses(gemini_response, deepseek_response, llama_response, grok_response, web_results)
+            save_to_memory(st.session_state.get('fixed_input'), final_output)
+            st.markdown(f"**Firebox:** {final_output}")
     else:
-        gemini_response = call_firebox_gemini(processed_input)
-        deepseek_response = deepseek_ai_response(processed_input)
-        llama_response = llama_ai_response(processed_input)
-        grok_response = call_firebox_grok(processed_input)
+        with st.spinner("Thinking... 🤔"):
+            gemini_response = call_firebox_gemini(processed_input)
+            deepseek_response = deepseek_ai_response(processed_input)
+            llama_response = llama_ai_response(processed_input)
+            grok_response = call_firebox_grok(processed_input)
 
-        final_output = merge_responses(gemini_response, deepseek_response, llama_response, grok_response, "")
-        save_to_memory(st.session_state.get('fixed_input'), final_output)
-        st.markdown(f"**You:** {st.session_state.get('fixed_input')}")
-        st.markdown(f"**Firebox:** {final_output}")
+            final_output = merge_responses(gemini_response, deepseek_response, llama_response, grok_response, "")
+            save_to_memory(st.session_state.get('fixed_input'), final_output)
+            st.markdown(f"**Firebox:** {final_output}")
 
-# === JavaScript to handle icon clicks ===
-js_script = """
-<script>
-    const textInput = document.querySelector('div.stTextInput > label > div > input');
-    const webSearchIcon = document.getElementById('web-search-icon');
-    const imageGenIcon = document.getElementById('image-gen-icon');
-
-    if (webSearchIcon) {
-        webSearchIcon.addEventListener('click', () => {
-            textInput.focus();
-            setTimeout(() => {
-                Streamlit.setSessionState({'web_search_clicked': true});
-                Streamlit.setSessionState({'fixed_input': '(web search) ' + textInput.value});
-                Streamlit.rerun();
-            }, 100);
-        });
-    }
-
-    if (imageGenIcon) {
-        imageGenIcon.addEventListener('click', () => {
-            textInput.focus();
-            setTimeout(() => {
-                Streamlit.setSessionState({'image_gen_clicked': true});
-                Streamlit.setSessionState({'fixed_input': '(generate an image) ' + textInput.value});
-                Streamlit.rerun();
-            }, 100);
-        });
-    }
-</script>
-"""
-st.components.v1.html(js_script)
+# No JavaScript needed for the text-based trigger phrases
