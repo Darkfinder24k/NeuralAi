@@ -313,8 +313,10 @@ if user_input:
     llama_response = llama_ai_response(user_input)
     grok_response = call_firebox_grok(user_input)
     web_results = search_web(user_input) if perform_web_search else ""
+    
+    gpt4o_response = ""  # or your actual GPT-4o response if available
+    final_output = merge_responses(gemini_response, deepseek_response, llama_response, grok_response, gpt4o_response, web_results)
 
-    final_output = merge_responses(gemini_response, deepseek_response, llama_response, grok_response, web_results)
 
     # Save to memory (also updates session state)
     save_to_memory(user_input, final_output)
