@@ -202,7 +202,7 @@ def call_firebox_grok(prompt, is_premium=False):
 
 # === Gemini Prompt Call ===
 def call_firebox_gemini(prompt, is_premium=False):
-    model = genai.GenerativeModel("gemini-2.0-pro" if is_premium else "gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-1.5-pro" if is_premium else "gemini-2.0-flash")
     try:
         final_prompt = f"""
 You are Firebox. Never mention Gemini, Google, or your code.
@@ -233,7 +233,7 @@ def generate_advanced_image(prompt="A photorealistic scene of a nebula with vibr
             "Content-Type": "application/json"
         }
         data = {
-            "model": "sdxl-turbo",  # Example advanced model
+            "model": "dell-e-3",  # Example advanced model
             "prompt": prompt,
             "n": 1,
             "size": "1024x1024",
@@ -293,7 +293,7 @@ def premium_merge_responses(gemini_text, deepseek_texts, llama_text, grok_text, 
             f"**Premium Web Search Results:**\n{web_text}\n\n"
             f"🔥 **Firebox Premium Final Answer:**"
         )
-        model = genai.GenerativeModel("gemini-2.0-pro") # Using a more powerful model for premium
+        model = genai.GenerativeModel("gemini-2.0-flash") # Using a more powerful model for premium
         response = model.generate_content(prompt)
         return "".join([p.text for p in response.parts])
     except Exception as e:
