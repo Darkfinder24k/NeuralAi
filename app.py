@@ -134,21 +134,11 @@ def deepseek_ai_response(prompt, is_premium=False):
         response = requests.post(url, headers=headers, json=data)
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
         raw_response = response.json()
-        print(f"Raw DeepSeek Response: {raw_response}")
-        if is_premium and raw_response.get("choices"):
-            return [choice["message"]["content"] for choice in raw_response["choices"]]
-        elif raw_response.get("choices"):
-            return raw_response["choices"][0]["message"]["content"]
-        else:
-            return f"❌ DeepSeek API: No choices returned. Response: {response.text}"
+        return raw_response
     except requests.exceptions.RequestException as e:
-        error_message = f"❌ DeepSeek API error: {e}"
-        print(f"Raw DeepSeek Error: {error_message}")
-        return error_message
+        return f"❌ DeepSeek API error: {e}"
     except (KeyError, json.JSONDecodeError) as e:
-        error_message = f"❌ Error processing DeepSeek response: {e}. Response: {response.text}"
-        print(f"Raw DeepSeek JSON Error: {error_message}")
-        return error_message
+        return f"❌ Error processing DeepSeek response: {e}. Response: {response.text}"
 
 # === Grok API Call ===
 def call_firebox_grok(prompt, is_premium=False):
@@ -166,19 +156,11 @@ def call_firebox_grok(prompt, is_premium=False):
         response = requests.post(f"{GROK_BASE_URL}/chat/completions", headers=headers, json=data)
         response.raise_for_status()
         raw_response = response.json()
-        print(f"Raw Grok Response: {raw_response}")
-        if raw_response.get("choices") and raw_response["choices"][0].get("message"):
-            return raw_response["choices"][0]["message"]["content"]
-        else:
-            return f"❌ Grok API: No message in choices. Response: {response.text}"
+        return raw_response
     except requests.exceptions.RequestException as e:
-        error_message = f"❌ Grok API error: {e}"
-        print(f"Raw Grok Error: {error_message}")
-        return error_message
+        return f"❌ Grok API error: {e}"
     except (KeyError, json.JSONDecodeError) as e:
-        error_message = f"❌ Error processing Grok response: {e}. Response: {response.text}"
-        print(f"Raw Grok JSON Error: {error_message}")
-        return error_message
+        return f"❌ Error processing Grok response: {e}. Response: {response.text}"
 
 # === Gemini Prompt Call ===
 def call_firebox_gemini(prompt, is_premium=False):
@@ -196,23 +178,13 @@ Answer in those languages in which the user is talking to you but you MUST suppo
         response = model.generate_content(final_prompt, stream=is_premium)
         if is_premium:
             full_response = ""
-            try:
-                for chunk in response:
-                    full_response += chunk.text
-            except Exception as e:
-                error_message = f"⚠️ Gemini streaming error: {e}"
-                print(f"Raw Gemini Streaming Error: {error_message}")
-                return error_message
-            print(f"Raw Gemini Response (Premium): {full_response}")
+            for chunk in response:
+                full_response += chunk.text
             return full_response
         else:
-            raw_response = "".join([p.text for p in response.parts])
-            print(f"Raw Gemini Response (Standard): {raw_response}")
-            return raw_response
+            return "".join([p.text for p in response.parts])
     except Exception as e:
-        error_message = f"❌ Gemini API error: {e}"
-        print(f"Raw Gemini Error: {error_message}")
-        return error_message
+        return f"❌ Gemini API error: {e}"
 
 # === Advanced Image Generation (Premium) ===
 def generate_advanced_image(prompt="A photorealistic scene of a nebula with vibrant colors and intricate details"):
@@ -249,59 +221,29 @@ def generate_image(prompt="A simple abstract design"):
 # === Premium Merge Responses ===
 def premium_merge_responses(gemini_text, deepseek_texts, grok_text, web_text):
     responses = {}
-    if isinstance(gemini_text, str) and not gemini_text.startswith("⚠️") and not gemini_text.startswith("❌"):
-        responses["Gemini"] = gemini_text
-    else:
-        responses["Gemini"] = f"⚠️ Gemini: {gemini_text}"
-
-    if isinstance(deepseek_texts, list) and all(isinstance(item, str) for item in deepseek_texts) and not any(item.startswith("⚠️") or item.startswith("❌") for item in deepseek_texts):
-        responses["DeepSeek"] = " ".join(deepseek_texts)
-    elif isinstance(deepseek_texts, str) and not deepseek_texts.startswith("⚠️") and not deepseek_texts.startswith("❌"):
-        responses["DeepSeek"] = deepseek_texts
-    else:
-        responses["DeepSeek"] = f"⚠️ DeepSeek: {deepseek_texts}"
-
-    if isinstance(grok_text, str) and not grok_text.startswith("⚠️") and not grok_text.startswith("❌"):
-        responses["Grok"] = grok_text
-    else:
-        responses["Grok"] = f"⚠️ Grok: {grok_text}"
-
+    responses["Gemini"] = gemini_text
+    responses["DeepSeek"] = deepseek_texts
+    responses["Grok"] = grok_text
     if web_text:
         responses["Web Search"] = web_text
 
-    if responses:
-        response_string = "🔥 **Firebox Premium Analysis:**\n"
-        for source, text in responses.items():
-            response_string += f"**{source}:** {text}\n\n"
-        response_string += "I've presented the outputs from each available source. Issues encountered by specific services are noted. A more integrated answer will be available once all services are functioning correctly. 👍"
-        return response_string
-    else:
-        return "⚠️ **Firebox Premium:** All underlying services encountered errors. Please check their status."
+    response_string = "🔥 **Firebox Premium Raw Responses:**\n"
+    for source, text in responses.items():
+        response_string += f"**{source}:**\n{text}\n\n"
+    return response_string
 
 # === Basic Merge Responses (Restricted Facilities) ===
 def merge_responses(gemini_text, deepseek_text, web_text):
     responses = {}
-    if isinstance(gemini_text, str) and not gemini_text.startswith("⚠️") and not gemini_text.startswith("❌"):
-        responses["Gemini"] = gemini_text
-    else:
-        responses["Gemini"] = f"⚠️ Gemini: {gemini_text}"
-
-    if isinstance(deepseek_text, str) and not deepseek_text.startswith("⚠️") and not deepseek_text.startswith("❌"):
-        responses["DeepSeek"] = deepseek_text
-    else:
-        responses["DeepSeek"] = f"⚠️ DeepSeek: {deepseek_text}"
-
+    responses["Gemini"] = gemini_text
+    responses["DeepSeek"] = deepseek_text
     if web_text:
         responses["Web Search"] = web_text
 
-    if responses:
-        response_string = "🔥 **Firebox Standard Analysis:**\n"
-        for source, text in responses.items():
-            response_string += f"**{source}:** {text}\n\n"
-        response_string += "I've presented the outputs from each available source. Issues encountered by specific services are noted. A more integrated answer will be provided when all services are stable. 👍"
-        return response_string
-    else:
-        return "⚠️ **Firebox Standard:** Both Gemini and DeepSeek encountered errors. Please check their status."
+    response_string = "🔥 **Firebox Standard Raw Responses:**\n"
+    for source, text in responses.items():
+        response_string += f"**{source}:**\n{text}\n\n"
+    return response_string
 
 # === Web Search ===
 def search_web(query):
@@ -324,7 +266,7 @@ def premium_search_web(query):
     except Exception as e:
         return f"❌ Error processing premium web search results: {e}"
 
-# === Custom CSS for Fixed Bottom Input ===
+# === Custom CSS ===
 custom_css = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -398,7 +340,7 @@ div.stTextInput > div > input {
 st.markdown(custom_css, unsafe_allow_html=True)
 
 # === Streamlit UI ===
-st.title("🔥 Firebox AI – Ultimate Assistant")
+st.title("🔥 Firebox AI – Raw Response Debug")
 
 with st.sidebar:
     st.session_state['premium_slider'] = st.checkbox("Open Premium Access")
@@ -409,7 +351,7 @@ with st.sidebar:
             st.sidebar.markdown('<span class="premium-badge">Premium Unlocked</span>', unsafe_allow_html=True)
         elif premium_code_entered:
             st.sidebar.error("Incorrect code.")
-        else:
+            else:
             st.sidebar.info("Enter the premium code to unlock all features and enhanced models.")
     else:
         st.sidebar.info("Standard Version: Utilizes Gemini 1.5 Pro, Grok-1. Some facilities like advanced image generation and extensive web search are restricted.")
@@ -429,57 +371,26 @@ if st.session_state.get('fixed_input'):
     perform_web_search = False
     perform_image_gen = False
 
-    if "(web search)" in user_input_lower:
-        perform_web_search = True
-        processed_input = user_input_lower.replace("(web search)", "").strip()
-    elif "(generate an image)" in user_input_lower or "image" in user_input_lower or "picture" in user_input_lower or "draw" in user_input_lower or "create a photo" in user_input_lower:
-        perform_image_gen = True
-        processed_input = st.session_state.get('fixed_input')
-    else:
-        processed_input = st.session_state.get('fixed_input')
+    processed_input = st.session_state.get('fixed_input')
 
     st.markdown(f"**You:** {st.session_state.get('fixed_input')}")
 
-    if perform_image_gen:
-        with st.spinner("Generating image... 🎨"):
-            if st.session_state.get('is_premium'):
-                image_url = generate_advanced_image(processed_input)
-            else:
-                image_url = generate_image(processed_input)
-            if image_url:
-                st.session_state['image_url'] = image_url
-                st.image(image_url, caption=processed_input, use_container_width=True)
-                save_to_memory(st.session_state.get('fixed_input'), f"Image generated: {image_url}")
-    elif perform_web_search:
-        with st.spinner("Searching the web... 🌐"):
-            if st.session_state.get('is_premium'):
-                web_results = premium_search_web(processed_input)
-                gemini_response = call_firebox_gemini(processed_input, is_premium=True)
-                deepseek_response = deepseek_ai_response(processed_input, is_premium=True)
-                grok_response = call_firebox_grok(processed_input, is_premium=True)
-                final_output = premium_merge_responses(gemini_response, deepseek_response, grok_response, web_results)
-            else:
-                web_results = search_web(processed_input)
-                gemini_response = call_firebox_gemini(processed_input)
-                deepseek_response = deepseek_ai_response(processed_input)
-                final_output = merge_responses(gemini_response, deepseek_response, web_results) # Grok removed from standard merge
-            save_to_memory(st.session_state.get('fixed_input'), final_output)
-            st.markdown(f"**Firebox:** {final_output}")
-    else:
-        with st.spinner("Thinking... 🤔"):
-            if st.session_state.get('is_premium'):
-                gemini_response = call_firebox_gemini(processed_input, is_premium=True)
-                deepseek_response = deepseek_ai_response(processed_input, is_premium=True)
-                grok_response = call_firebox_grok(processed_input, is_premium=True)
-                final_output = premium_merge_responses(gemini_response, deepseek_response, grok_response, "")
-                st.markdown(f"**Firebox:** {final_output}")
-                save_to_memory(st.session_state.get('fixed_input'), final_output)
+    with st.spinner("Fetching raw responses..."):
+        gemini_raw = call_firebox_gemini(processed_input, is_premium=st.session_state.get('is_premium'))
+        deepseek_raw = deepseek_ai_response(processed_input, is_premium=st.session_state.get('is_premium'))
+        grok_raw = None
+        if st.session_state.get('is_premium'):
+            grok_raw = call_firebox_grok(processed_input, is_premium=True)
 
-            else:
-                gemini_response = call_firebox_gemini(processed_input)
-                deepseek_response = deepseek_ai_response(processed_input)
-                final_output = merge_responses(gemini_response, deepseek_response, "") # Grok and web search removed from standard
-                save_to_memory(st.session_state.get('fixed_input'), final_output)
-                st.markdown(f"**Firebox:** {final_output}")
+        st.subheader("Raw API Responses:")
+        st.write("**Gemini:**")
+        st.json(gemini_raw)
+        st.write("**DeepSeek:**")
+        st.json(deepseek_raw)
+        if grok_raw:
+            st.write("**Grok:**")
+            st.json(grok_raw)
+
+        # We are only displaying raw responses for debugging, so we stop here.
 
 # No JavaScript needed for the text-based trigger phrases
