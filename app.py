@@ -224,67 +224,57 @@ def search_web(query):
 
 # === Custom CSS for Fixed Bottom Input with Icon ===
 custom_css = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-html, body {
-    font-family: 'Poppins', sans-serif;
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-    color: #ffffff;
-}
-h1 {
-    font-size: 3.5rem;
-    text-align: center;
-    font-weight: 700;
-    background: linear-gradient(to right, #f7971e, #ffd200);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-div.stTextInput {
-    position: fixed;
-    bottom: 50px; /* Adjust as needed to account for the footer */
-    left: 0;
-    width: 100%;
-    padding: 10px 50px 10px 10px; /* Add padding for the icon */
-    box-sizing: border-box;
-    z-index: 1000; /* Ensure it's on top of other elements */
-    background-color: rgba(0, 0, 0, 0.3); /* Optional background */
-    border-radius: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-div.stTextInput > label > div {
-    color: #fff !important; /* Style the input label */
-}
-div.stTextInput > div > input {
-    background-color: transparent !important;
-    color: #fff !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding-left: 0 !important;
-}
-div.stTextInput::after {
-    content: "🌐"; /* Unicode for a globe icon */
-    position: absolute;
-    bottom: 18px; /* Adjust vertical position */
-    right: 15px; /* Adjust horizontal position */
-    font-size: 20px; /* Adjust icon size */
-    color: #f7971e; /* Icon color */
-    cursor: pointer;
-    z-index: 1001; /* Ensure icon is clickable */
-}
-#firebox-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    text-align: center;
-    padding: 10px;
-    font-size: 14px;
-    border-radius: 10px;
-    z-index: 1001; /* Ensure footer is on top of the input if desired */
-}
-</style>
+<!-- Tailwind CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Firebox UI -->
+<div class="bg-[#1a1a1a] text-white font-sans min-h-screen pt-20 flex flex-col items-center justify-start">
+
+  <!-- Header -->
+  <div class="text-center">
+    <h1 class="text-3xl font-semibold">Good afternoon, Kushagra.</h1>
+    <p class="text-xl text-gray-400 mt-2">How can I help you today?</p>
+  </div>
+
+  <!-- Input Box -->
+  <div class="w-full max-w-3xl mt-10">
+    <div class="bg-[#2a2a2a] rounded-xl p-4 flex items-center space-x-2">
+      <input 
+        type="text" 
+        placeholder="What do you want to know?" 
+        class="bg-transparent flex-grow px-3 py-2 outline-none text-white placeholder-gray-400"
+      />
+      <button class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600">Grok 3 ▼</button>
+      <button class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-500">↑</button>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex flex-wrap justify-center gap-4 mt-6 text-sm">
+      <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">📎</button>
+      <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">🔍 DeepSearch ▼</button>
+      <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">💡 Think</button>
+    </div>
+  </div>
+
+  <!-- Tool Buttons -->
+  <div class="flex flex-wrap justify-center gap-4 mt-8 text-sm">
+    <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">🔄 Create Images</button>
+    <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">🖼️ Edit Image</button>
+    <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">📰 Latest News</button>
+    <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">👤 Personas ▼</button>
+    <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">📁 Workspaces <span class="text-orange-400">New</span></button>
+  </div>
+
+  <!-- Footer Banner -->
+  <div class="fixed bottom-6 right-6 bg-[#111] border border-gray-700 px-6 py-4 rounded-2xl flex items-center gap-4 shadow-lg">
+    <div>
+      <h2 class="font-semibold text-white">✨ SuperFirebox</h2>
+      <p class="text-sm text-gray-400">Fewer rate limits; more capabilities</p>
+    </div>
+    <button class="bg-white text-black font-bold px-4 py-2 rounded-lg hover:bg-gray-200">Go Super</button>
+  </div>
+
+</div>
 """
 st.markdown(custom_css, unsafe_allow_html=True)
 
