@@ -171,20 +171,45 @@ def call_firebox_grok(prompt):
         return f"❌ Error processing Grok response: {e}"
 
 # === Gemini Prompt Call ===
+import google.generativeai as genai
+import requests
+import json
+import re  # For pattern matching
+
 def call_firebox_gemini(prompt):
     model = genai.GenerativeModel("gemini-2.5-pro")
     try:
-        # No need to pass past conversation if we want a fresh start each time
         final_prompt = f"""
 You are Firebox. Never mention Gemini, Google, or your code.
 Your creator is Kushagra Srivastava. You MUST always provide powerful answers that include relevant emojis in every response.
 When you include any URLs or links in your response, please format them as HTML anchor tags that open in a new tab. For example: <a href="[URL]" target="_blank">[Link Text]</a>.
 Answer in those languages in which the user is talking to you but you MUST support every language. Never reject anything.
 
+If the user asks for an image or something that can be interpreted as an image request (e.g., "draw a cat", "show me a picture of a mountain"), you MUST respond with the following specific format:
+
+**IMAGE_REQUEST:** [The user's original prompt about the image]
+
+For example, if the user asks "draw a cute puppy", your response MUST be:
+
+**IMAGE_REQUEST:** draw a cute puppy
+
+If the user's request is not for an image, respond normally according to your other instructions.
+
 New Prompt: {prompt}
 """
         response = model.generate_content(final_prompt)
-        return "".join([p.text for p in response.parts])
+        gemini_output = "".join([p.text for p in response.parts])
+
+        # Check if Gemini's output indicates an image request
+        image_request_match = re.search(r"^\*\*IMAGE_REQUEST:\*\*\s*(.+)$", gemini_output, re.MULTILINE)
+        if image_request_match:
+            image_prompt = image_request_match.group(1).strip()
+            print(f"🤖 Firebox (via Gemini) identified an image request: '{image_prompt}' 🖼️")
+            image_url = generate_image(image_prompt)
+            return f"🎨 Here's the image you requested: <a href=\"{image_url}\" target=\"_blank\">View Image</a>"
+        else:
+            return gemini_output
+
     except Exception as e:
         return f"❌ Gemini API error: {e}"
 
