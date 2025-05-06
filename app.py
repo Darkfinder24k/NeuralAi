@@ -227,55 +227,53 @@ html_code = """
 <!DOCTYPE html>
 <html lang="en" class="bg-[#1a1a1a] text-white">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Firebox AI</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Firebox AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="flex flex-col items-center justify-start min-h-screen pt-20 font-sans">
-  <!-- Header -->
-  <div class="text-center">
-    <h1 class="text-3xl font-semibold">Good afternoon, Kushagra.</h1>
-    <p class="text-xl text-gray-400 mt-2">How can I help you today?</p>
-  </div>
-
-  <!-- Input Box -->
-  <div class="w-full max-w-3xl mt-10">
-    <div class="bg-[#2a2a2a] rounded-xl p-4 flex items-center space-x-2">
-      <input 
-        type="text" 
-        placeholder="What do you want to know?" 
-        class="bg-transparent flex-grow px-3 py-2 outline-none text-white placeholder-gray-400"
-      />
-      <button class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600">Grok 3 ▼</button>
-      <button class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-500">↑</button>
+    <div class="text-center">
+        <h1 class="text-3xl font-semibold">Good afternoon, Kushagra.</h1>
+        <p class="text-xl text-gray-400 mt-2">How can I help you today?</p>
     </div>
 
-    <!-- Buttons -->
-    <div class="flex flex-wrap justify-center gap-4 mt-6 text-sm">
-      <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">📎</button>
-      <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">🔍 DeepSearch ▼</button>
-      <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">💡 Think</button>
-    </div>
-  </div>
+    <div class="w-full max-w-3xl mt-10">
+        <div class="bg-[#2a2a2a] rounded-xl p-4 flex items-center space-x-2">
+            <input
+                type="text"
+                placeholder="What do you want to know?"
+                class="bg-transparent flex-grow px-3 py-2 outline-none text-white placeholder-gray-400"
+                oninput="document.getElementById('fixed_input').value = this.value;"
+                onkeydown="if (event.keyCode === 13) { document.getElementById('send_button').click(); }"
+            />
+            <button class="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600">Grok 3 ▼</button>
+            <button id="send_button" class="bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-500" onclick="document.getElementById('web_search_clicked').value = true;">↑</button>
+        </div>
 
-  <!-- Tool Buttons -->
-  <div class="flex flex-wrap justify-center gap-4 mt-8 text-sm">
-    <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">🔄 Create Images</button>
-    <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">🖼️ Edit Image</button>
-    <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">📰 Latest News</button>
-    <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">👤 Personas ▼</button>
-    <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">📁 Workspaces <span class="text-orange-400">New</span></button>
-  </div>
-
-  <!-- Footer Banner -->
-  <div class="fixed bottom-6 right-6 bg-[#111] border border-gray-700 px-6 py-4 rounded-2xl flex items-center gap-4 shadow-lg">
-    <div>
-      <h2 class="font-semibold text-white">✨ SuperFirebox</h2>
-      <p class="text-sm text-gray-400">Fewer rate limits; more capabilities</p>
+        <div class="flex flex-wrap justify-center gap-4 mt-6 text-sm">
+            <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">📎</button>
+            <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]" onclick="document.getElementById('web_search_clicked').value = true; document.getElementById('send_button').click();">🔍 DeepSearch ▼</button>
+            <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">💡 Think</button>
+        </div>
     </div>
-    <button class="bg-white text-black font-bold px-4 py-2 rounded-lg hover:bg-gray-200">Go Super</button>
-  </div>
+
+    <div class="flex flex-wrap justify-center gap-4 mt-8 text-sm">
+        <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">🔄 Create Images</button>
+        <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">🖼️ Edit Image</button>
+        <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">📰 Latest News</button>
+        <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">👤 Personas ▼</button>
+        <button class="bg-[#2a2a2a] px-4 py-2 rounded-lg hover:bg-[#3a3a3a]">📁 Workspaces <span class="text-orange-400">New</span></button>
+    </div>
+
+    <div class="fixed bottom-6 right-6 bg-[#111] border border-gray-700 px-6 py-4 rounded-2xl flex items-center gap-4 shadow-lg">
+        <div>
+            <h2 class="font-semibold text-white">✨ SuperFirebox</h2>
+            <p class="text-sm text-gray-400">Fewer rate limits; more capabilities</p>
+        </div>
+        <button class="bg-white text-black font-bold px-4 py-2 rounded-lg hover:bg-gray-200">Go Super</button>
+    </div>
+    <input type="hidden" id="web_search_clicked" name="web_search_clicked" value="False">
 </body>
 </html>
 """
@@ -288,7 +286,7 @@ st.title("🔥 Firebox AI – Ultimate Assistant")
 display_chat_history()
 
 # Fixed input at the bottom
-user_input = st.text_input("Your Query:", key="fixed_input")
+user_input = st.session_state.get("fixed_input", "")
 
 # Footer message
 st.markdown('<div id="firebox-footer">Firebox can make mistakes. <span style="font-weight: bold;">Help it improve.</span></div>', unsafe_allow_html=True)
@@ -309,11 +307,3 @@ if user_input:
 
     gpt4o_response = ""  # or your actual GPT-4o response if available
     final_output = merge_responses(gemini_response, deepseek_response, llama_response, grok_response, gpt4o_response, web_results)
-
-
-    # Save to memory (also updates session state)
-    save_to_memory(user_input, final_output)
-
-    # Display current prompt and response at the top
-    st.markdown(f"**You:** {user_input}")
-    st.markdown(f"**Firebox:** {final_output}")
