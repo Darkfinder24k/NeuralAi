@@ -16,7 +16,7 @@ import os
 
 import platform
 
-from fpdf import FPDF  # Ensure you have fpdf2 installed: pip install fpdf2
+from fpdf import FPDF
 
 from PIL import Image
 
