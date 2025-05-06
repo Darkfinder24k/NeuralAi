@@ -159,7 +159,7 @@ def call_firebox_grok(prompt):
             "Content-Type": "application/json"
         }
         data = {
-            "model": "grok-1",  # Or another Grok model if available
+            "model": "grok-3",  # Or another Grok model if available
             "messages": [{"role": "user", "content": prompt}]
         }
         response = requests.post(f"{GROK_BASE_URL}/chat/completions", headers=headers, json=data)
@@ -339,7 +339,7 @@ if st.session_state.get('fixed_input'):
         with st.spinner("Generating image... 🎨"):
             image_url = generate_image(processed_input)
             st.session_state['image_url'] = image_url
-            st.image(image_url, caption=processed_input, use_container_width=True)
+            st.image(image_url, caption=processed_input, use_column_width=True)
             save_to_memory(st.session_state.get('fixed_input'), f"Image generated: {image_url}")
     elif perform_web_search:
         with st.spinner("Searching the web... 🌐"):
